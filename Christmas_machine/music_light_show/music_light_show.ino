@@ -68,6 +68,23 @@ int lightPin[] = {
   2,3,12
 };
 
+int turnOnNextLight(int idx)
+{
+  digitalWrite(lightPin[idx],LOW);
+  int arraySize;
+  GET_ARRAY_LEN(lightPin,arraySize);
+
+  if (idx==(arraySize-1))
+  {
+    idx=0;
+  }
+  else
+  {
+    idx++;
+  }
+  digitalWrite(lightPin[idx],HIGH);
+  
+}
 
 void setup() {
   pinMode(9,OUTPUT);
@@ -163,14 +180,16 @@ void loop() {
   // 通过for循环安顺序和节奏播放we wish you a merry christmas， 每个循环播放一个音符
   // thisNote的数值表示当前循环次数，从零开始
 
-  int lightIdx=0;
+  
 
   //计算melody数组长度，并保存到整型变量melodyCount中
   int melodyCount;
   GET_ARRAY_LEN(melody,melodyCount);
+  int lightIdx=0;
   
   for (int thisNote = 0; thisNote < melodyCount; thisNote++) {
-
+    lightIdx=turnOnNextLight(lightIdx);
+    
     //根据节奏数值来计算音符的持续时间, 1000除以节奏代码，比如4分音符就是1000/4=250毫秒
     int noteDuration = 1000 / noteDurations[thisNote]; 
 
@@ -190,7 +209,9 @@ void loop() {
   //计算melody1数组长度，并保存到整型变量melodyCount中
   GET_ARRAY_LEN(melody1,melodyCount);
   for (int thisNote = 0; thisNote < melodyCount; thisNote++) {
-
+    
+    lightIdx=turnOnNextLight(lightIdx);
+    
     //根据节奏数值来计算音符的持续时间, 1000除以节奏代码，比如4分音符就是1000/4=250毫秒
     int noteDuration = 1000 / noteDurations1[thisNote]; 
 
