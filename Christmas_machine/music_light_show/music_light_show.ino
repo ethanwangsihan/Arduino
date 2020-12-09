@@ -63,10 +63,97 @@ int noteDurations1[] = {
   
 
 void setup() {
+  pinMode(9,OUTPUT);
+  pinMode(2,OUTPUT);
+  pinMode(3,OUTPUT);
+  pinMode(12,OUTPUT);
+
 
 }
 
 void loop() {
+  //闪烁部分
+  digitalWrite(2,HIGH);
+  delay(700);
+  digitalWrite(3,HIGH);
+  delay(700);
+  digitalWrite(12,HIGH);
+  delay(100);
+  digitalWrite(2,LOW);
+  delay(700);
+  digitalWrite(3,LOW);
+  delay(700);
+  digitalWrite(12,LOW);
+  delay(1000);
+  digitalWrite(2,HIGH);
+  delay(700);
+  digitalWrite(2,LOW);
+  delay(700);
+  digitalWrite(3,HIGH);
+  delay(700);
+  digitalWrite(3,LOW);
+  delay(700);
+  digitalWrite(12,HIGH);
+  delay(700);
+  digitalWrite(12,LOW);
+  delay(700);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite;(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  digitalWrite(2,HIGH);
+  digitalWrite(3,HIGH);
+  digitalWrite(12,HIGH);
+  delay(500);
+  digitalWrite(2,LOW);
+  digitalWrite(3,LOW);
+  digitalWrite(12,LOW);
+  delay(500);
+  //音乐部分
   // 通过for循环安顺序和节奏播放we wish you a merry christmas， 每个循环播放一个音符
   // thisNote的数值表示当前循环次数，从零开始
   
@@ -99,6 +186,6 @@ void loop() {
   }
 
   //两次播放之间间隔10秒钟（10000毫秒）
-  delay(3000);
+  delay(2000);
   
 }
