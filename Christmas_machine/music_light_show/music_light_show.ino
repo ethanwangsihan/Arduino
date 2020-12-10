@@ -113,92 +113,10 @@ void setup() {
 }
 
 void loop() {
-  //闪烁部分
-  digitalWrite(2, HIGH);
-  delay(700);
-  digitalWrite(3, HIGH);
-  delay(700);
-  digitalWrite(12, HIGH);
-  delay(100);
-  digitalWrite(2, LOW);
-  delay(700);
-  digitalWrite(3, LOW);
-  delay(700);
-  digitalWrite(12, LOW);
-  delay(1000);
-  digitalWrite(2, HIGH);
-  delay(700);
-  digitalWrite(2, LOW);
-  delay(700);
-  digitalWrite(3, HIGH);
-  delay(700);
-  digitalWrite(3, LOW);
-  delay(700);
-  digitalWrite(12, HIGH);
-  delay(700);
-  digitalWrite(12, LOW);
-  delay(700);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite; (2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(2, HIGH);
-  digitalWrite(3, HIGH);
-  digitalWrite(12, HIGH);
-  delay(500);
-  digitalWrite(2, LOW);
-  digitalWrite(3, LOW);
-  digitalWrite(12, LOW);
-  delay(500);
+
   //音乐部分
   // 通过for循环安顺序和节奏播放we wish you a merry christmas， 每个循环播放一个音符
   // thisNote的数值表示当前循环次数，从零开始
-
-
 
   //计算melody数组长度，并保存到整型变量melodyCount中
   int melodyCount;
