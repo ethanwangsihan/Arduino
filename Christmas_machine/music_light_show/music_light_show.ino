@@ -41,6 +41,13 @@ int melody[] = {
 };
 //整型数组保存歌曲Jungle bell的一组音符
 int melody1[] = {
+  SOL_L, MI_M, RE_M, DO_M, SOL_L,
+  SOL_L, SOL_L, SOL_L, MI_M, RE_M, DO_M, LA_L,
+  LA_L, FA_M, MI_M, RE_M, SI_L,
+  SOL_M, SOL_M, FA_M, RE_M, MI_M,
+  SOL_L, MI_M, MI_M, RE_M, DO_M, SOL_L,
+  SOL_L, SOL_L, SOL_L, MI_M, MI_M, RE_M, DO_M, LA_L,
+  LA_L, FA_M, MI_M, RE_M, SOL_M, SOL_M, SOL_M, SOL_M, LA_M, SOL_M, FA_M, RE_M, DO_M,
   MI_M, MI_M, MI_M, MI_M, MI_M, MI_M, MI_M, SOL_M, DO_M, RE_M, MI_M,
   FA_M, FA_M, FA_M, FA_M, FA_M, MI_M, MI_M, MI_M, MI_M, MI_M, RE_M, RE_M, DO_M, RE_M, SOL_M,
   MI_M, MI_M, MI_M, MI_M, MI_M, MI_M, MI_M, SOL_M, DO_M, RE_M, MI_M,
@@ -60,6 +67,13 @@ int noteDurations[] = {
 
 //整型数组保存歌曲Jungle bell所有音符的节奏
 int noteDurations1[] = {
+  4, 4, 4, 4, 2,
+  8, 8, 4, 4, 4, 4, 2,
+  4, 4, 4, 4, 2,
+  4, 4, 4, 4, 2,
+  4, 8, 8, 4, 4, 2,
+  8, 8, 4, 8, 8, 4, 4, 2, 
+  4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2,
   4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 1,
   4, 4, 4, 8, 4, 4, 4, 8, 8, 4, 4, 4, 4, 2, 2,
   4, 4, 2, 4, 4, 2, 4, 4, 4, 4, 1,
