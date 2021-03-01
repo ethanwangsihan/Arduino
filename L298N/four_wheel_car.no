@@ -1,0 +1,62 @@
+#define IN1  2
+#define IN2  4
+#define ENA  6
+#define ENB  3
+#define IN3  7
+#define IN4  8
+#define ENAA  5
+#define IN1A  9
+#define IN2A  10
+#define IN3A  12
+#define IN4A  13
+#define ENBA  11
+void setup() {
+  //设置串口波特率
+  Serial.begin(9600);
+  
+  //设置引脚模式
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENA, OUTPUT);
+  pinMode(IN3A, OUTPUT);
+  pinMode(IN4A, OUTPUT);
+  pinMode(ENBA, OUTPUT);
+  pinMode(IN1A, OUTPUT);
+  pinMode(IN2A, OUTPUT);
+  pinMode(ENAA, OUTPUT);
+  
+
+
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2, HIGH);
+    analogWrite(ENA,82 ); //ENB要输出PWM信号（0-255）
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4, HIGH);
+    analogWrite(ENB, 80); //ENA要输出PWM信号（0-255）
+    //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4A, LOW);
+    analogWrite(ENBA,80); //ENB要输出PWM信号（0-255）
+    //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2A, HIGH);
+    analogWrite(ENAA,80); //ENB要输出PWM信号（0-255）
+    }
