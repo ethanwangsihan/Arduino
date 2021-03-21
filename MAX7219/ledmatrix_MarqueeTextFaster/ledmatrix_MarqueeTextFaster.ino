@@ -293,7 +293,7 @@ void setup() {
   led.setEnabled(true);
 
   // LED brightness (0 - 15).
-  led.setIntensity(0);
+  led.setIntensity(15);
 }
 
 void loop()
