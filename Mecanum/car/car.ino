@@ -15,7 +15,7 @@
 IRrecv irrecv(A1);
 decode_results results;
 
-int speedPwm=100;
+int speedPwm = 150;
 
 void setup() {
   pinMode(IN3, OUTPUT);
@@ -60,6 +60,31 @@ void loop() {
     {
       moveLeft(speedPwm);
     }
+    else if (results.value == 0xFF30CF)//左前1
+    {
+      moveLeftAhead(speedPwm);
+    }
+    else if (results.value == 0xFF7A85)//右前3
+    {
+      moveRightAhead(speedPwm);
+    }
+    else if (results.value == 0xFF42BD)//左后7
+    {
+      moveLeftBack(speedPwm);
+    }
+    else if (results.value == 0xFF52AD)//右后9
+    {
+      moveRightBack(speedPwm);
+    }
+    else if (results.value == 0xFFA857)//顺时针转+
+    {
+      moveCW(speedPwm);
+    }
+    else if (results.value == 0xFFE01F)//逆时针转-
+    {
+      moveCCW(speedPwm);
+    }
+
     irrecv.resume();
   }
   delay(100);
@@ -68,181 +93,318 @@ void loop() {
 //停车
 void stopCar()
 {
-      //////////////////////////////
-      //左下角电机代码
-      //////////////////////////////
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, LOW);
-      analogWrite(ENA, 0);
-      /////////////////////////////
-      //右下角电机代码
-      /////////////////////////////
-      digitalWrite(IN3, LOW);
-      digitalWrite(IN4, LOW);
-      analogWrite(ENB, 0);
-      //////////////////////////////
-      //左上角电机代码
-      //////////////////////////////
-      digitalWrite(IN3A, LOW);
-      digitalWrite(IN4A, LOW);
-      analogWrite(ENBA, 0);
-      //////////////////////////////
-      //右上角电机代码
-      //////////////////////////////
-      digitalWrite(IN1A, LOW);
-      digitalWrite(IN2A, LOW);
-      analogWrite(ENAA, 0);
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, 0);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, 0);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, 0);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW);
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, 0);
 }
 
 //向前
 void MoveAhead(int speedPwm)
 {
-      //////////////////////////////
-      //左下角电机代码
-      //////////////////////////////
-      digitalWrite(IN1, LOW); 
-      digitalWrite(IN2, HIGH);
-      analogWrite(ENA, speedPwm); 
-      /////////////////////////////
-      //右下角电机代码
-      /////////////////////////////
-      digitalWrite(IN3, LOW); 
-      digitalWrite(IN4, HIGH);
-      analogWrite(ENB, speedPwm); 
-      //////////////////////////////
-      //左上角电机代码
-      //////////////////////////////
-      digitalWrite(IN3A, HIGH); 
-      digitalWrite(IN4A, LOW);
-      analogWrite(ENBA, speedPwm);
-      //////////////////////////////
-      //右上角电机代码
-      //////////////////////////////
-      digitalWrite(IN1A, HIGH); 
-      digitalWrite(IN2A, LOW);
-      analogWrite(ENAA, speedPwm); 
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speedPwm);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, HIGH);
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, speedPwm);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, HIGH);
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, speedPwm);
 }
 
 //后退
 void MoveBack(int speedPwm)
 {
-        //////////////////////////////
-      //左下角电机代码
-      //////////////////////////////
-      digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
-      analogWrite(ENA, speedPwm);
-      /////////////////////////////
-      //右下角电机代码
-      /////////////////////////////
-      digitalWrite(IN3, HIGH);
-      digitalWrite(IN4, LOW);
-      analogWrite(ENB, speedPwm);
-      //////////////////////////////
-      //左上角电机代码
-      //////////////////////////////
-      digitalWrite(IN3A, LOW);
-      digitalWrite(IN4A, HIGH);
-      analogWrite(ENBA, speedPwm);
-      //////////////////////////////
-      //右上角电机代码
-      //////////////////////////////
-      digitalWrite(IN1A, LOW);
-      digitalWrite(IN2A, HIGH);
-      analogWrite(ENAA, speedPwm);
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speedPwm);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, HIGH);
+  analogWrite(ENBA, speedPwm);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW);
+  digitalWrite(IN2A, HIGH);
+  analogWrite(ENAA, speedPwm);
 }
 
 //左平移
 void moveLeft(int speedPwm)
 {
-      //////////////////////////////
-      //左下角电机代码
-      //////////////////////////////
-      digitalWrite(IN1, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN2, LOW);
-      analogWrite(ENA, speedPwm); //ENB要输出PWM信号（0-255）
-      /////////////////////////////
-      //右下角电机代码
-      /////////////////////////////
-      digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN4, HIGH);
-      analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
-      //////////////////////////////
-      //左上角电机代码
-      //////////////////////////////
-      digitalWrite(IN3A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN4A, LOW);
-      analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
-      //////////////////////////////
-      //右上角电机代码
-      //////////////////////////////
-      digitalWrite(IN1A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN2A, HIGH);
-      analogWrite(ENAA, speedPwm); //ENB要输出PWM信号（0-255）
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speedPwm); //ENB要输出PWM信号（0-255）
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2A, HIGH);
+  analogWrite(ENAA, speedPwm); //ENB要输出PWM信号（0-255）
 }
 
 //右平移
 void moveRight(int speedPwm)
 {
-      //////////////////////////////
-      //左下角电机代码
-      //////////////////////////////
-      digitalWrite(IN1, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN2, HIGH);
-      analogWrite(ENA, speedPwm); //ENB要输出PWM信号（0-255）
-      /////////////////////////////
-      //右下角电机代码
-      /////////////////////////////
-      digitalWrite(IN3, HIGH); //IN1和IN2只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN4, LOW);
-      analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
-      //////////////////////////////
-      //左上角电机代码
-      //////////////////////////////
-      digitalWrite(IN3A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN4A, HIGH);
-      analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
-      //////////////////////////////
-      //右上角电机代码
-      //////////////////////////////
-      digitalWrite(IN1A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
-      digitalWrite(IN2A, LOW);
-      analogWrite(ENAA, speedPwm); //ENB要输出PWM信号（0-255）
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speedPwm); //ENB要输出PWM信号（0-255）
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, HIGH); //IN1和IN2只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4A, HIGH);
+  analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, speedPwm); //ENB要输出PWM信号（0-255）
 }
 
 //向左前移动
 void moveLeftAhead(int speedPwm)
 {
-  
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, 0); //ENB要输出PWM信号（0-255）
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, 0); //ENB要输出PWM信号（0-255）
 }
 
 //向右前移动
 void moveRightAhead(int speedPwm)
 {
-  
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, 0);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, 0);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, HIGH);
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, speedPwm);
 }
 
 //向左后移动
 void moveLeftBack(int speedPwm)
 {
-  
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, 0);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, 0);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW);
+  digitalWrite(IN2A, HIGH);
+  analogWrite(ENAA, speedPwm);
 }
 
 //向右后移动
 void moveRightBack(int speedPwm)
 {
-  
-}
-
-//顺时针旋转
-void moveCW(int speed)
-{
-  
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, 0);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speedPwm);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, HIGH);
+  analogWrite(ENBA, speedPwm);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW);
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, 0);
 }
 
 //逆时针旋转
-void moveCCW(int speed)
+void moveCCW(int speedPwm)
 {
-  
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, HIGH);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, HIGH);
+  digitalWrite(IN4, LOW);
+  analogWrite(ENB, speedPwm);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, HIGH);
+  digitalWrite(IN4A, LOW);
+  analogWrite(ENBA, speedPwm);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, LOW);
+  digitalWrite(IN2A, HIGH);
+  analogWrite(ENAA, speedPwm);
 }
+
+//顺时针旋转
+void moveCW(int speedPwm)
+{
+  //////////////////////////////
+  //左下角电机代码
+  //////////////////////////////
+  digitalWrite(IN1, HIGH);
+  digitalWrite(IN2, LOW);
+  analogWrite(ENA, speedPwm);
+  /////////////////////////////
+  //右下角电机代码
+  /////////////////////////////
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, HIGH);
+  analogWrite(ENB, speedPwm);
+  //////////////////////////////
+  //左上角电机代码
+  //////////////////////////////
+  digitalWrite(IN3A, LOW);
+  digitalWrite(IN4A, HIGH);
+  analogWrite(ENBA, speedPwm);
+  //////////////////////////////
+  //右上角电机代码
+  //////////////////////////////
+  digitalWrite(IN1A, HIGH);
+  digitalWrite(IN2A, LOW);
+  analogWrite(ENAA, speedPwm);
 }
