@@ -233,3 +233,16 @@ void moveRightBack(int speedPwm)
 {
   
 }
+
+//顺时针旋转
+void moveCW(int speed)
+{
+  
+}
+
+//逆时针旋转
+void moveCCW(int speed)
+{
+  
+}
+}
