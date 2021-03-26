@@ -15,7 +15,10 @@
 IRrecv irrecv(A1);
 decode_results results;
 
+const int maxPwm = 200, minPwm = 50, changePwm=10;
 int speedPwm = 150;
+enum CARDMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, STOP} carMode=STOP;
+
 
 void setup() {
   pinMode(IN3, OUTPUT);
@@ -42,57 +45,95 @@ void loop() {
     Serial.println(results.value, HEX);
     if (results.value == 0xFF18E7)//前进2
     {
-      MoveAhead(speedPwm);
+      carMode=MOVEAHEAD;
     }
     else if (results.value == 0xFF38C7)//停止 5
     {
-      stopCar();
+      carMode=STOP;
     }
     else if (results.value == 0xFF4AB5)//后退8
     {
-      MoveBack(speedPwm);
+      carMode=MOVEBACK;
     }
     else if (results.value == 0xFF5AA5)//右6
     {
-      moveRight(speedPwm);
+      carMode=MOVERIGHT;
     }
     else if (results.value == 0xFF10EF)//左4
     {
-      moveLeft(speedPwm);
+      carMode=MOVELEFT;
     }
     else if (results.value == 0xFF30CF)//左前1
     {
-      moveLeftAhead(speedPwm);
+      carMode=MOVELEFTAHEAD;
     }
     else if (results.value == 0xFF7A85)//右前3
     {
-      moveRightAhead(speedPwm);
+      carMode=MOVERIGHTAHEAD;
     }
     else if (results.value == 0xFF42BD)//左后7
     {
-      moveLeftBack(speedPwm);
+      carMode=MOVELEFTBACK;
     }
     else if (results.value == 0xFF52AD)//右后9
     {
-      moveRightBack(speedPwm);
+      carMode=MOVERIGHTBACK;
     }
-    else if (results.value == 0xFFA857)//顺时针转+
+    else if (results.value == 0xFF02FD)//顺时针转+
     {
-      moveCW(speedPwm);
+      carMode=MOVECW;
     }
-    else if (results.value == 0xFFE01F)//逆时针转-
+    else if (results.value == 0xFF22DD)//逆时针转-
     {
-      moveCCW(speedPwm);
+      carMode=MOVECCW;
     }
-
+    else if (results.value == 0xFFA857)//加速+
+    {
+      if (speedPwm < maxPwm)
+      {
+        speedPwm = speedPwm + changePwm;
+        
+      }
+      
+    }
+    else if (results.value == 0xFFE01F)//减速-
+    {
+      if (speedPwm > minPwm)
+      {
+        speedPwm = speedPwm - changePwm;
+        
+      }
+    }
+    carAction();
     irrecv.resume();
   }
   delay(100);
 }
 
+
+void carAction()
+{
+  switch(carMode)
+  {
+    case MOVEAHEAD: { moveAhead(speedPwm); break; };
+    case MOVEBACK: { moveBack(speedPwm); break; };
+    case MOVELEFT: { moveLeft(speedPwm); break; };
+    case MOVERIGHT: { moveRight(speedPwm); break; };
+    case MOVELEFTAHEAD: { moveLeftAhead(speedPwm); break; };
+    case MOVERIGHTAHEAD: { moveRightAhead(speedPwm); break; };
+    case MOVELEFTBACK: { moveLeftBack(speedPwm); break; };
+    case MOVERIGHTBACK: { moveRightBack(speedPwm); break; };
+    case MOVECW: { moveCW(speedPwm); break; };
+    case MOVECCW: { moveCCW(speedPwm); break; };
+    case STOP: { stopCar(); break; };
+  }
+}
+
+
 //停车
 void stopCar()
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -120,8 +161,9 @@ void stopCar()
 }
 
 //向前
-void MoveAhead(int speedPwm)
+void moveAhead(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -149,8 +191,9 @@ void MoveAhead(int speedPwm)
 }
 
 //后退
-void MoveBack(int speedPwm)
+void moveBack(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -180,6 +223,7 @@ void MoveBack(int speedPwm)
 //左平移
 void moveLeft(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -209,6 +253,7 @@ void moveLeft(int speedPwm)
 //右平移
 void moveRight(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -238,6 +283,7 @@ void moveRight(int speedPwm)
 //向左前移动
 void moveLeftAhead(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -267,6 +313,7 @@ void moveLeftAhead(int speedPwm)
 //向右前移动
 void moveRightAhead(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -296,6 +343,7 @@ void moveRightAhead(int speedPwm)
 //向左后移动
 void moveLeftBack(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -325,6 +373,7 @@ void moveLeftBack(int speedPwm)
 //向右后移动
 void moveRightBack(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -354,6 +403,7 @@ void moveRightBack(int speedPwm)
 //逆时针旋转
 void moveCCW(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -383,6 +433,7 @@ void moveCCW(int speedPwm)
 //顺时针旋转
 void moveCW(int speedPwm)
 {
+  
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
