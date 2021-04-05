@@ -5,7 +5,7 @@
 
 // Define the ChipSelect pin for the led matrix (Dont use the SS or MISO pin of your Arduino!)
 // Other pins are Arduino specific SPI pins (MOSI=DIN, SCK=CLK of the LEDMatrix) see https://www.arduino.cc/en/Reference/SPI
-const uint8_t LEDMATRIX_CS_PIN = 9;
+const uint8_t LEDMATRIX_CS_PIN = A2;
 
 // Number of 8x8 segments you are connecting
 const int LEDMATRIX_SEGMENTS = 4;
