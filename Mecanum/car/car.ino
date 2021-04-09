@@ -16,121 +16,20 @@
 
 LedControl lc = LedControl(A2, A3, A4, 1); //初始化点阵
 
-int ahed[8][8] = {
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 1, 1, 1, 1, 0, 0},
-  {0, 1, 0, 1, 1, 0, 1, 0},
-  {1, 0, 0, 1, 1, 0, 0, 1},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0}
-};
+byte ahead[8] = {0x18,0x3c,0x5a,0x99,0x18,0x18,0x18,0x18};
+byte back[8] = {0x18,0x18,0x18,0x18,0x99,0x5a,0x3c,0x18};
+byte left[8] = {0x10,0x20,0x40,0xff,0xff,0x40,0x20,0x10};
+byte right[8] = {0x08,0x04,0x02,0xff,0xff,0x02,0x04,0x08};
+byte right_ahead[8] = {0x1f,0x03,0x05,0x09,0x11,0x20,0x40,0x80};
+byte left_ahead[8] = {0xf8,0xc0,0xa0,0x90,0x88,0x04,0x02,0x01};
+byte right_back[8] = {0x80,0x40,0x20,0x11,0x09,0x05,0x03,0x1f};
+byte left_back[8] = {0x01,0x02,0x04,0x88,0x90,0xa0,0xc0,0xf8};
+byte CCW[8] = {0x3c,0x42,0x81,0xe1,0xc1,0x81,0x02,0x3c};
+byte CW[8] = {0x3c,0x42,0x81,0x81,0x87,0x83,0x41,0x38};
+byte ST[8] = {0x3c,0x42,0x81,0xbd,0xbd,0x81,0x42,0x3c};
 
-/*
-int back[8][8] = {
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0},
-  {1, 0, 0, 1, 1, 0, 0, 1},
-  {0, 1, 0, 1, 1, 0, 1, 0},
-  {0, 0, 1, 1, 1, 1, 0, 0},
-  {0, 0, 0, 1, 1, 0, 0, 0}
-};
-int left[8][8] = {
-  {0, 0, 0, 1, 0, 0, 0, 0},
-  {0, 0, 1, 0, 0, 0, 0, 0},
-  {0, 1, 0, 0, 0, 0, 0, 0},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {0, 1, 0, 0, 0, 0, 0, 0},
-  {0, 0, 1, 0, 0, 0, 0, 0},
-  {0, 0, 0, 1, 0, 0, 0, 0}
-};
-int right[8][8] = {
-  {0, 0, 0, 0, 1, 0, 0, 0},
-  {0, 0, 0, 0, 0, 1, 0, 0},
-  {0, 0, 0, 0, 0, 0, 1, 0},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {0, 0, 0, 0, 0, 0, 1, 0},
-  {0, 0, 0, 0, 0, 1, 0, 0},
-  {0, 0, 0, 0, 1, 0, 0, 0}
-};
-int right_ahead[8][8] = {
-  {0, 0, 0, 1, 1, 1, 1, 1},
-  {0, 0, 0, 0, 0, 0, 1, 1},
-  {0, 0, 0, 0, 0, 1, 0, 1},
-  {0, 0, 0, 0, 1, 0, 0, 1},
-  {0, 0, 0, 1, 0, 0, 0, 1},
-  {0, 0, 1, 0, 0, 0, 0, 0},
-  {0, 1, 0, 0, 0, 0, 0, 0},
-  {1, 0, 0, 0, 0, 0, 0, 0}
-};
-int left_ahead[8][8] = {
-  {1, 1, 1, 1, 1, 0, 0, 0},
-  {1, 1, 0, 0, 0, 0, 0, 0},
-  {1, 0, 1, 0, 0, 0, 0, 0},
-  {1, 0, 0, 1, 0, 0, 0, 0},
-  {1, 0, 0, 0, 1, 0, 0, 0},
-  {0, 0, 0, 0, 0, 1, 0, 0},
-  {0, 0, 0, 0, 0, 0, 1, 0},
-  {0, 0, 0, 0, 0, 0, 0, 1}
-};
-int right_back[8][8] = {
-  {1, 0, 0, 0, 0, 0, 0, 0},
-  {0, 1, 0, 0, 0, 0, 0, 0},
-  {0, 0, 1, 0, 0, 0, 0, 0},
-  {0, 0, 0, 1, 0, 0, 0, 1},
-  {0, 0, 0, 0, 1, 0, 0, 1},
-  {0, 0, 0, 0, 0, 1, 0, 1},
-  {0, 0, 0, 0, 0, 0, 1, 1},
-  {0, 0, 0, 1, 1, 1, 1, 1}
-};
-int left_back[8][8] = {
-  {0, 0, 0, 0, 0, 0, 0, 1},
-  {0, 0, 0, 0, 0, 0, 1, 0},
-  {0, 0, 0, 0, 0, 1, 0, 0},
-  {1, 0, 0, 0, 1, 0, 0, 0},
-  {1, 0, 0, 1, 0, 0, 0, 0},
-  {1, 0, 1, 0, 0, 0, 0, 0},
-  {1, 1, 0, 0, 0, 0, 0, 0},
-  {1, 1, 1, 1, 1, 0, 0, 0}
-};
-int CCW[8][8] = {
-  {0, 0, 1, 1, 1, 1, 0, 0},
-  {0, 1, 0, 0, 0, 0, 1, 0},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 1, 1, 0, 0, 0, 0, 1},
-  {1, 1, 0, 0, 0, 0, 0, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {0, 0, 0, 0, 0, 0, 1, 0},
-  {0, 0, 1, 1, 1, 1, 0, 0}
-};
-int CW[8][8] = {
-  {0, 0, 1, 1, 1, 1, 0, 0},
-  {0, 1, 0, 0, 0, 0, 1, 0},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 0, 0, 0, 0, 1, 1, 1},
-  {1, 0, 0, 0, 0, 0, 1, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {0, 1, 0, 0, 0, 0, 0, 0},
-  {0, 0, 1, 1, 1, 1, 0, 0}
-};
-int ST[8][8] = {
-  {0, 0, 1, 1, 1, 1, 0, 0},
-  {0, 1, 0, 0, 0, 0, 1, 0},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {1, 1, 1, 1, 1, 1, 1, 1},
-  {1, 0, 0, 0, 0, 0, 0, 1},
-  {0, 1, 0, 0, 0, 0, 1, 0},
-  {0, 0, 1, 1, 1, 1, 0, 0}
-};
-*/
 
-IRrecv irrecv(A1);
+IRrecv irrecv(A1); //初始化红外
 decode_results results;
 
 const int maxPwm = 200, minPwm = 50, changePwm = 10;
@@ -141,7 +40,7 @@ CARMODE carMode = STOP;
 
 
 void setup() {
-  
+  Serial.begin(9600);
   //true表示省电模式，false表示正常模式
   lc.shutdown(0, false); //启动点阵屏
   lc.setIntensity(0, 4); //调节亮度，级别从0到15
@@ -160,12 +59,7 @@ void setup() {
   pinMode(IN2A, OUTPUT);
   pinMode(ENAA, OUTPUT);
   
-  pinMode(A1, INPUT);
-
-  
   irrecv.enableIRIn();
-  Serial.begin(9600);
-  delay(1000);
 }
 
 void loop() {
@@ -295,18 +189,7 @@ void carAction()
 void stopCar()
 { 
   Serial.println("stopCar");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, ST[i][j]);
-    }
-  }
+  updateLed(ST);
 
   //////////////////////////////
   //左下角电机代码
@@ -338,18 +221,7 @@ void stopCar()
 void moveAhead(int speedPwm)
 { 
   Serial.println("moveAhead");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      lc.setLed(0, i, j, ahed[i][j]);
-    }
-  }
+  updateLed(ahead);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -380,18 +252,7 @@ void moveAhead(int speedPwm)
 void moveBack(int speedPwm)
 { 
   Serial.println("moveBack");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, back[i][j]);
-    }
-  }
+  updateLed(back);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -422,18 +283,7 @@ void moveBack(int speedPwm)
 void moveLeft(int speedPwm)
 { 
   Serial.println("moveLeft");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, left[i][j]);
-    }
-  }
+  updateLed(left);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -464,18 +314,7 @@ void moveLeft(int speedPwm)
 void moveRight(int speedPwm)
 { 
   Serial.println("moveRight");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, right[i][j]);
-    }
-  }
+  updateLed(right);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -506,18 +345,7 @@ void moveRight(int speedPwm)
 void moveLeftAhead(int speedPwm)
 { 
   Serial.println("moveLeftAhead");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, left_ahead[i][j]);
-    }
-  }
+  updateLed(left_ahead);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -548,18 +376,7 @@ void moveLeftAhead(int speedPwm)
 void moveRightAhead(int speedPwm)
 { 
   Serial.println("moveRightAhead");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, right_ahead[i][j]);
-    }
-  }
+  updateLed(right_ahead);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -590,18 +407,7 @@ void moveRightAhead(int speedPwm)
 void moveLeftBack(int speedPwm)
 { 
   Serial.println("moveLeftBack");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, left_back[i][j]);
-    }
-  }
+  updateLed(left_back);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -632,18 +438,7 @@ void moveLeftBack(int speedPwm)
 void moveRightBack(int speedPwm)
 { 
   Serial.println("moveRightBack");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, right_back[i][j]);
-    }
-  }
+  updateLed(right_back);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -674,18 +469,7 @@ void moveRightBack(int speedPwm)
 void moveCCW(int speedPwm)
 { 
   Serial.println("moveCCW");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, CCW[i][j]);
-    }
-  }
+  updateLed(CCW);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -716,18 +500,7 @@ void moveCCW(int speedPwm)
 void moveCW(int speedPwm)
 { 
   Serial.println("moveCW");
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    for (int j = 0; j <= 7; j++)
-    {
-      //参数1：点阵的地址(序号)
-      //参数2：行数
-      //参数3：列数
-      //参数4：用数组表示高低电平，控制点阵屏上的led灯亮或灭
-      //lc.setLed(0, i, j, CW[i][j]);
-    }
-  }
+  updateLed(CW);
   //////////////////////////////
   //左下角电机代码
   //////////////////////////////
@@ -752,4 +525,13 @@ void moveCW(int speedPwm)
   digitalWrite(IN1A, HIGH);
   digitalWrite(IN2A, LOW);
   analogWrite(ENAA, speedPwm);
+}
+
+void updateLed(byte Sprite[])
+{
+  lc.clearDisplay(0);//清除显示
+  for (int i = 0; i <= 7; i++)
+  {
+    lc.setRow(0,i,Sprite[i]);
+  }
 }

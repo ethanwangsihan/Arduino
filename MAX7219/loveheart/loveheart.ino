@@ -4,7 +4,7 @@ int CS = 11;
 
 int CLK = 10; //这里定义了那三个脚
 
-unsigned char disp1[38][8] = {
+byte disp1[38][8] = {
 
   {0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x40, 0x7E}, //L
 
