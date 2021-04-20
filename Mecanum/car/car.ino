@@ -1,5 +1,5 @@
 #include <IRremote.h>
-#include <LedControl.h> 
+#include <LedControl.h>
 
 #define IN1  2
 #define IN2  4
@@ -16,24 +16,28 @@
 
 LedControl lc = LedControl(A2, A3, A4, 1); //初始化点阵
 
-byte ahead[8] = {0x18,0x3c,0x5a,0x99,0x18,0x18,0x18,0x18};
-byte back[8] = {0x18,0x18,0x18,0x18,0x99,0x5a,0x3c,0x18};
-byte left[8] = {0x10,0x20,0x40,0xff,0xff,0x40,0x20,0x10};
-byte right[8] = {0x08,0x04,0x02,0xff,0xff,0x02,0x04,0x08};
-byte right_ahead[8] = {0x1f,0x03,0x05,0x09,0x11,0x20,0x40,0x80};
-byte left_ahead[8] = {0xf8,0xc0,0xa0,0x90,0x88,0x04,0x02,0x01};
-byte right_back[8] = {0x80,0x40,0x20,0x11,0x09,0x05,0x03,0x1f};
-byte left_back[8] = {0x01,0x02,0x04,0x88,0x90,0xa0,0xc0,0xf8};
-byte CCW[8] = {0x3c,0x42,0x81,0xe1,0xc1,0x81,0x02,0x3c};
-byte CW[8] = {0x3c,0x42,0x81,0x81,0x87,0x83,0x41,0x38};
-byte ST[8] = {0x3c,0x42,0x81,0xbd,0xbd,0x81,0x42,0x3c};
-
-
+byte ahead[8] = {0x18, 0x3c, 0x5a, 0x99, 0x18, 0x18, 0x18, 0x18};
+byte back[8] = {0x18, 0x18, 0x18, 0x18, 0x99, 0x5a, 0x3c, 0x18};
+byte left[8] = {0x10, 0x20, 0x40, 0xff, 0xff, 0x40, 0x20, 0x10};
+byte right[8] = {0x08, 0x04, 0x02, 0xff, 0xff, 0x02, 0x04, 0x08};
+byte right_ahead[8] = {0x1f, 0x03, 0x05, 0x09, 0x11, 0x20, 0x40, 0x80};
+byte left_ahead[8] = {0xf8, 0xc0, 0xa0, 0x90, 0x88, 0x04, 0x02, 0x01};
+byte right_back[8] = {0x80, 0x40, 0x20, 0x11, 0x09, 0x05, 0x03, 0x1f};
+byte left_back[8] = {0x01, 0x02, 0x04, 0x88, 0x90, 0xa0, 0xc0, 0xf8};
+byte CCW[8] = {0x3c, 0x42, 0x81, 0xe1, 0xc1, 0x81, 0x02, 0x3c};
+byte CW[8] = {0x3c, 0x42, 0x81, 0x81, 0x87, 0x83, 0x41, 0x38};
+byte ST[8] = {0x3c, 0x42, 0x81, 0xbd, 0xbd, 0x81, 0x42, 0x3c};
+byte zero[8] = {0x00, 0x38, 0x44, 0x4c, 0x54, 0x64, 0x44, 0x38}; // 0
+byte one[8] = {0x04, 0x0c, 0x14, 0x24, 0x04, 0x04, 0x04, 0x04};// 1
+byte two[8] = {0x00, 0x30, 0x48, 0x04, 0x04, 0x38, 0x40, 0x7c}; // 2
+byte three[8] = {0x00, 0x38, 0x04, 0x04, 0x18, 0x04, 0x44, 0x38}; // 3
+byte four[8] = {0x00, 0x04, 0x0c, 0x14, 0x24, 0x7e, 0x04, 0x04}; // 4
+byte five[8] = {0x00, 0x7c, 0x40, 0x40, 0x78, 0x04, 0x04, 0x38}; // 5
 IRrecv irrecv(A1); //初始化红外
 decode_results results;
 
-const int maxPwm = 200, minPwm = 50, changePwm = 10;
-int speedPwm = 150;
+const int maxPwm = 200, minPwm = 100, changePwm = 20;
+int speedPwm = 160;
 enum CARMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, STOP};
 
 CARMODE carMode = STOP;
@@ -45,7 +49,7 @@ void setup() {
   lc.shutdown(0, false); //启动点阵屏
   lc.setIntensity(0, 4); //调节亮度，级别从0到15
   lc.clearDisplay(0);//清除显示
-  
+
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
@@ -58,7 +62,7 @@ void setup() {
   pinMode(IN1A, OUTPUT);
   pinMode(IN2A, OUTPUT);
   pinMode(ENAA, OUTPUT);
-  
+
   irrecv.enableIRIn();
 }
 
@@ -114,7 +118,8 @@ void loop() {
       if (speedPwm < maxPwm)
       {
         speedPwm = speedPwm + changePwm;
-
+        showSpeedNum(speedPwm);
+        delay(700);
       }
 
     }
@@ -123,7 +128,8 @@ void loop() {
       if (speedPwm > minPwm)
       {
         speedPwm = speedPwm - changePwm;
-
+        showSpeedNum(speedPwm);
+        delay(700);
       }
     }
     carAction();
@@ -187,7 +193,7 @@ void carAction()
 
 //停车
 void stopCar()
-{ 
+{
   Serial.println("stopCar");
   updateLed(ST);
 
@@ -219,7 +225,7 @@ void stopCar()
 
 //向前
 void moveAhead(int speedPwm)
-{ 
+{
   Serial.println("moveAhead");
   updateLed(ahead);
   //////////////////////////////
@@ -250,7 +256,7 @@ void moveAhead(int speedPwm)
 
 //后退
 void moveBack(int speedPwm)
-{ 
+{
   Serial.println("moveBack");
   updateLed(back);
   //////////////////////////////
@@ -281,7 +287,7 @@ void moveBack(int speedPwm)
 
 //左平移
 void moveLeft(int speedPwm)
-{ 
+{
   Serial.println("moveLeft");
   updateLed(left);
   //////////////////////////////
@@ -312,7 +318,7 @@ void moveLeft(int speedPwm)
 
 //右平移
 void moveRight(int speedPwm)
-{ 
+{
   Serial.println("moveRight");
   updateLed(right);
   //////////////////////////////
@@ -343,7 +349,7 @@ void moveRight(int speedPwm)
 
 //向左前移动
 void moveLeftAhead(int speedPwm)
-{ 
+{
   Serial.println("moveLeftAhead");
   updateLed(left_ahead);
   //////////////////////////////
@@ -374,7 +380,7 @@ void moveLeftAhead(int speedPwm)
 
 //向右前移动
 void moveRightAhead(int speedPwm)
-{ 
+{
   Serial.println("moveRightAhead");
   updateLed(right_ahead);
   //////////////////////////////
@@ -405,7 +411,7 @@ void moveRightAhead(int speedPwm)
 
 //向左后移动
 void moveLeftBack(int speedPwm)
-{ 
+{
   Serial.println("moveLeftBack");
   updateLed(left_back);
   //////////////////////////////
@@ -436,7 +442,7 @@ void moveLeftBack(int speedPwm)
 
 //向右后移动
 void moveRightBack(int speedPwm)
-{ 
+{
   Serial.println("moveRightBack");
   updateLed(right_back);
   //////////////////////////////
@@ -467,7 +473,7 @@ void moveRightBack(int speedPwm)
 
 //逆时针旋转
 void moveCCW(int speedPwm)
-{ 
+{
   Serial.println("moveCCW");
   updateLed(CCW);
   //////////////////////////////
@@ -498,7 +504,7 @@ void moveCCW(int speedPwm)
 
 //顺时针旋转
 void moveCW(int speedPwm)
-{ 
+{
   Serial.println("moveCW");
   updateLed(CW);
   //////////////////////////////
@@ -532,6 +538,39 @@ void updateLed(byte Sprite[])
   lc.clearDisplay(0);//清除显示
   for (int i = 0; i <= 7; i++)
   {
-    lc.setRow(0,i,Sprite[i]);
+    lc.setRow(0, i, Sprite[i]);
+  }
+}
+
+void showSpeedNum(int speedPwd)
+{
+  int speedNum = (speedPwm - 100) / 20;
+  switch (speedNum)
+  {
+    case 0: {
+        updateLed(zero);
+        break;
+      };
+    case 1: {
+        updateLed(one);
+        break;
+      };
+    case 2: {
+        updateLed(two);
+        break;
+      };
+      case 3: {
+        updateLed(three);
+        break;
+      };
+      case 4: {
+        updateLed(four);
+        break;
+      };
+      case 5: {
+        updateLed(five);
+        break;
+      };
+      
   }
 }
