@@ -33,6 +33,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 
+float PAI=3.14159265;
 /* Assign a unique ID to this sensor at the same time */
 Adafruit_HMC5883_Unified mag = Adafruit_HMC5883_Unified(12345);
 
@@ -51,7 +52,7 @@ void displaySensorDetails(void)
   Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" uT");  
   Serial.println("------------------------------------");
   Serial.println("");
-  delay(500);
+  delay(5000);
 }
 
 void setup(void) 
@@ -93,23 +94,27 @@ void loop(void)
   // Find yours here: http://www.magnetic-declination.com/
   // Mine is: -13* 2' W, which is ~13 Degrees, or (which we need) 0.22 radians
   // If you cannot find your Declination, comment out these two lines, your compass will be slightly off.
-  float declinationAngle = 0.22;
+  float declinationAngle = -1.034;
   heading += declinationAngle;
+
   
   // Correct for when signs are reversed.
   if(heading < 0)
     heading += 2*PI;
     
+
+    /*
   // Check for wrap due to addition of declination.
-  if(heading > 2*PI)
-    heading -= 2*PI;
+  if(heading > 2*PAI)
+    heading -= 2*PAI;
+    */
    
   // Convert radians to degrees for readability.
-  float headingDegrees = heading * 180/M_PI; 
+  float headingDegrees = heading * 180/PAI; 
   
-  Serial.print("Heading (degrees): "); Serial.println(headingDegrees);
+  Serial.print("Heading (radians/degrees): "); Serial.print(heading);Serial.print("/");Serial.println(headingDegrees);
   
-  delay(500);
+  delay(1000);
 }
 
 //JW:校正HMC5883地磁传感器
