@@ -1,5 +1,5 @@
-#include <IRremote.h>
 #include <LedControl.h>
+#include <SoftwareSerial.h>
 
 #define IN1  2
 #define IN2  4
@@ -14,7 +14,9 @@
 #define IN4A  13
 #define ENBA  10
 
+int v = -1;
 LedControl lc = LedControl(A2, A3, A4, 1); //初始化点阵
+SoftwareSerial m = SoftwareSerial(A0, A1);
 
 byte ahead[8] = {0x18, 0x3c, 0x5a, 0x99, 0x18, 0x18, 0x18, 0x18};
 byte back[8] = {0x18, 0x18, 0x18, 0x18, 0x99, 0x5a, 0x3c, 0x18};
@@ -27,14 +29,12 @@ byte left_back[8] = {0x01, 0x02, 0x04, 0x88, 0x90, 0xa0, 0xc0, 0xf8};
 byte CCW[8] = {0x3c, 0x42, 0x81, 0xe1, 0xc1, 0x81, 0x02, 0x3c};
 byte CW[8] = {0x3c, 0x42, 0x81, 0x81, 0x87, 0x83, 0x41, 0x38};
 byte ST[8] = {0x3c, 0x42, 0x81, 0xbd, 0xbd, 0x81, 0x42, 0x3c};
-byte zero[8] = {0x3c,0x42,0x46,0x4a,0x52,0x62,0x42,0x3c}; // 0
-byte one[8] = {0x08,0x18,0x28,0x08,0x08,0x08,0x08,0x3e};// 1
-byte two[8] = {0x3c,0x42,0x02,0x04,0x08,0x10,0x20,0x7e}; // 2
-byte three[8] = {0x3c,0x42,0x02,0x1c,0x02,0x02,0x42,0x3c}; // 3
-byte four[8] = {0x04,0x0c,0x14,0x24,0x44,0x7e,0x04,0x04}; // 4
-byte five[8] = {0x7e,0x40,0x7c,0x02,0x02,0x02,0x02,0x7c}; // 5
-IRrecv irrecv(A1); //初始化红外
-decode_results results;
+byte zero[8] = {0x3c, 0x42, 0x46, 0x4a, 0x52, 0x62, 0x42, 0x3c}; // 0
+byte one[8] = {0x08, 0x18, 0x28, 0x08, 0x08, 0x08, 0x08, 0x3e}; // 1
+byte two[8] = {0x3c, 0x42, 0x02, 0x04, 0x08, 0x10, 0x20, 0x7e}; // 2
+byte three[8] = {0x3c, 0x42, 0x02, 0x1c, 0x02, 0x02, 0x42, 0x3c}; // 3
+byte four[8] = {0x04, 0x0c, 0x14, 0x24, 0x44, 0x7e, 0x04, 0x04}; // 4
+byte five[8] = {0x7e, 0x40, 0x7c, 0x02, 0x02, 0x02, 0x02, 0x7c}; // 5
 
 const int maxPwm = 200, minPwm = 100, changePwm = 20;
 int speedPwm = 160;
@@ -44,7 +44,9 @@ CARMODE carMode = STOP;
 
 
 void setup() {
-  Serial.begin(9600);
+  m.begin(9600);
+  Serial.begin(115200);
+  
   //true表示省电模式，false表示正常模式
   lc.shutdown(0, false); //启动点阵屏
   lc.setIntensity(0, 4); //调节亮度，级别从0到15
@@ -63,80 +65,71 @@ void setup() {
   pinMode(IN2A, OUTPUT);
   pinMode(ENAA, OUTPUT);
 
-  irrecv.enableIRIn();
 }
 
 void loop() {
-  carAction();
-  if (irrecv.decode(&results)) {
-    Serial.println(results.value, HEX);
-    if (results.value == 0xFF18E7)//前进2
-    {
-      carMode = MOVEAHEAD;
-    }
-    else if (results.value == 0xFF38C7)//停止 5
-    {
-      carMode = STOP;
-    }
-    else if (results.value == 0xFF4AB5)//后退8
-    {
-      carMode = MOVEBACK;
-    }
-    else if (results.value == 0xFF5AA5)//右6
-    {
-      carMode = MOVERIGHT;
-    }
-    else if (results.value == 0xFF10EF)//左4
-    {
-      carMode = MOVELEFT;
-    }
-    else if (results.value == 0xFF30CF)//左前1
-    {
-      carMode = MOVELEFTAHEAD;
-    }
-    else if (results.value == 0xFF7A85)//右前3
-    {
-      carMode = MOVERIGHTAHEAD;
-    }
-    else if (results.value == 0xFF42BD)//左后7
-    {
-      carMode = MOVELEFTBACK;
-    }
-    else if (results.value == 0xFF52AD)//右后9
-    {
-      carMode = MOVERIGHTBACK;
-    }
-    else if (results.value == 0xFF02FD)//顺时针转+
-    {
-      carMode = MOVECW;
-    }
-    else if (results.value == 0xFF22DD)//逆时针转-
-    {
-      carMode = MOVECCW;
-    }
-    else if (results.value == 0xFFA857)//加速+
-    {
-      if (speedPwm < maxPwm)
-      {
-        speedPwm = speedPwm + changePwm;
-        showSpeedNum(speedPwm);
-        delay(700);
-      }
 
-    }
-    else if (results.value == 0xFFE01F)//减速-
-    {
-      if (speedPwm > minPwm)
-      {
-        speedPwm = speedPwm - changePwm;
-        showSpeedNum(speedPwm);
-        delay(700);
-      }
-    }
-    carAction();
-    irrecv.resume();
+
+  while (v == -1)
+  {
+    v = m.read();
+    delay(100);
   }
-  delay(100);
+
+
+  Serial.println (v);
+
+  if (v == 'f')
+  {
+    carMode = MOVEAHEAD;
+  }
+  else if (v == 's')
+  {
+    carMode = STOP;
+  }
+  else if (v == 'b')
+  {
+    carMode = MOVEBACK;
+  }
+  else if (v == 'r')
+  {
+    carMode = MOVERIGHT;
+  }
+  else if (v == 'l')
+  {
+    carMode = MOVELEFT;
+  }
+
+  else if (v == 'u')
+  {
+    carMode = MOVECW;
+  }
+  else if (v == 'v')
+  {
+    carMode = MOVECCW;
+  }
+  else if (v == 'p')
+  {
+    if (speedPwm < maxPwm)
+    {
+      speedPwm = speedPwm + changePwm;
+      showSpeedNum(speedPwm);
+      delay(700);
+    }
+
+  }
+  else if (v == 'm')
+  {
+    if (speedPwm > minPwm)
+    {
+      speedPwm = speedPwm - changePwm;
+      showSpeedNum(speedPwm);
+      delay(700);
+    }
+  }
+  carAction();
+
+  v = -1;
 }
 
 
@@ -160,22 +153,7 @@ void carAction()
         moveRight(speedPwm);
         break;
       };
-    case MOVELEFTAHEAD: {
-        moveLeftAhead(speedPwm);
-        break;
-      };
-    case MOVERIGHTAHEAD: {
-        moveRightAhead(speedPwm);
-        break;
-      };
-    case MOVELEFTBACK: {
-        moveLeftBack(speedPwm);
-        break;
-      };
-    case MOVERIGHTBACK: {
-        moveRightBack(speedPwm);
-        break;
-      };
+
     case MOVECW: {
         moveCW(speedPwm);
         break;
@@ -348,129 +326,6 @@ void moveRight(int speedPwm)
   analogWrite(ENAA, speedPwm); //ENB要输出PWM信号（0-255）
 }
 
-//向左前移动
-void moveLeftAhead(int speedPwm)
-{
-  Serial.println("moveLeftAhead");
-  updateLed(left_ahead);
-  //////////////////////////////
-  //左下角电机代码
-  //////////////////////////////
-  digitalWrite(IN1, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, 0); //ENB要输出PWM信号（0-255）
-  /////////////////////////////
-  //右下角电机代码
-  /////////////////////////////
-  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN4, HIGH);
-  analogWrite(ENB, speedPwm); //ENA要输出PWM信号（0-255）
-  //////////////////////////////
-  //左上角电机代码
-  //////////////////////////////
-  digitalWrite(IN3A, HIGH); //IN3和IN4只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN4A, LOW);
-  analogWrite(ENBA, speedPwm); //ENB要输出PWM信号（0-255）
-  //////////////////////////////
-  //右上角电机代码
-  //////////////////////////////
-  digitalWrite(IN1A, LOW); //IN3和IN4只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN2A, LOW);
-  analogWrite(ENAA, 0); //ENB要输出PWM信号（0-255）
-}
-
-//向右前移动
-void moveRightAhead(int speedPwm)
-{
-  Serial.println("moveRightAhead");
-  updateLed(right_ahead);
-  //////////////////////////////
-  //左下角电机代码
-  //////////////////////////////
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, HIGH);
-  analogWrite(ENA, speedPwm);
-  /////////////////////////////
-  //右下角电机代码
-  /////////////////////////////
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, 0);
-  //////////////////////////////
-  //左上角电机代码
-  //////////////////////////////
-  digitalWrite(IN3A, LOW);
-  digitalWrite(IN4A, LOW);
-  analogWrite(ENBA, 0);
-  //////////////////////////////
-  //右上角电机代码
-  //////////////////////////////
-  digitalWrite(IN1A, HIGH);
-  digitalWrite(IN2A, LOW);
-  analogWrite(ENAA, speedPwm);
-}
-
-//向左后移动
-void moveLeftBack(int speedPwm)
-{
-  Serial.println("moveLeftBack");
-  updateLed(left_back);
-  //////////////////////////////
-  //左下角电机代码
-  //////////////////////////////
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, speedPwm);
-  /////////////////////////////
-  //右下角电机代码
-  /////////////////////////////
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, 0);
-  //////////////////////////////
-  //左上角电机代码
-  //////////////////////////////
-  digitalWrite(IN3A, LOW);
-  digitalWrite(IN4A, LOW);
-  analogWrite(ENBA, 0);
-  //////////////////////////////
-  //右上角电机代码
-  //////////////////////////////
-  digitalWrite(IN1A, LOW);
-  digitalWrite(IN2A, HIGH);
-  analogWrite(ENAA, speedPwm);
-}
-
-//向右后移动
-void moveRightBack(int speedPwm)
-{
-  Serial.println("moveRightBack");
-  updateLed(right_back);
-  //////////////////////////////
-  //左下角电机代码
-  //////////////////////////////
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  analogWrite(ENA, 0);
-  /////////////////////////////
-  //右下角电机代码
-  /////////////////////////////
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
-  analogWrite(ENB, speedPwm);
-  //////////////////////////////
-  //左上角电机代码
-  //////////////////////////////
-  digitalWrite(IN3A, LOW);
-  digitalWrite(IN4A, HIGH);
-  analogWrite(ENBA, speedPwm);
-  //////////////////////////////
-  //右上角电机代码
-  //////////////////////////////
-  digitalWrite(IN1A, LOW);
-  digitalWrite(IN2A, LOW);
-  analogWrite(ENAA, 0);
-}
 
 //逆时针旋转
 void moveCCW(int speedPwm)
@@ -560,18 +415,18 @@ void showSpeedNum(int speedPwd)
         updateLed(two);
         break;
       };
-      case 3: {
+    case 3: {
         updateLed(three);
         break;
       };
-      case 4: {
+    case 4: {
         updateLed(four);
         break;
       };
-      case 5: {
+    case 5: {
         updateLed(five);
         break;
       };
-      
+
   }
 }
