@@ -5,7 +5,7 @@ const int MPU_addr = 0x68;             // I2C address of MPU-6050
 
 long AcXo = 0, AcYo = 0, AcZo = 0;    //加速度计偏移量或误差
 long GyXo = 0, GyYo = 0, GyZo = 0;    //陀螺仪偏移量或误差
-  
+
 int16_t AcX, AcY, AcZ;                 //accelerometer - force it to be a 16-bit integer
 double gForceX, gForceY, gForceZ;    //将结果转换成重力加速度, 其实算出来没什么用, 以为横滚俯仰是通过各个轴向数据的比例算出来的
 
@@ -18,7 +18,7 @@ int AcRange = 0;                       //accelerometer Range at the cost of Sens
 
 int16_t GyX, GyY, GyZ;                 //gyroscope - force it to be a 16-bit integer
 double rotX, rotY, rotZ;
-double gyroXangle=0, gyroYangle=0;        // Angle calculate using the gyro only
+double gyroXangle = 0, gyroYangle = 0, gyroZangle = 0; // Angle calculate using the gyro only
 
 int GyRange = 0;                       //gyroscope Range at the cost of Sensitivity - see setupMPU
 
@@ -41,7 +41,7 @@ void setup() {
 
   delay(1000);
 
-  int times = 1000;             //采样次数
+  int times = 2000;             //采样次数
   for (int i = 0; i < times; i++)          //得到初始的offset
   {
     recordAccel();
@@ -55,34 +55,39 @@ void setup() {
   GyXo /= times; GyYo /= times; GyZo /= times; //计算陀螺仪偏移
 
 
-  #ifdef RESTRICT_PITCH // Eq. 25 and 26
+#ifdef RESTRICT_PITCH // Eq. 25 and 26
   rollOffset  = atan2(AcYo, AcZo) * 180 / pi;
   pitchOffset = atan2(-AcXo, sqrt(pow(AcYo, 2) + pow(AcZo, 2))) * 180 / pi;
-  #else // Eq. 28 and 29
+#else // Eq. 28 and 29
   rollOffset  = atan2(AcYo, sqrt(pow(AcXo, 2) + pow(AcZo, 2))) * 180 / pi;
   pitchOffset = atan2(-AcXo, AcZo) * 180 / pi;
-  #endif
-  
+#endif
+
   timer = micros();
+
 }
 
 void loop() {
+
+  long currentTime=micros();
+  double dt = (double)(currentTime - timer) / 1000000; // Calculate delta time
+  timer = currentTime;
 
   recordAccel();
   //recordTemperature();
   recordAngleByAcc();
 
-  double dt = (double)(micros() - timer) / 1000000; // Calculate delta time
-  timer = micros();
+
   recordGyro();
   processGyroData();
   recordAngleByGyro(dt);
-  
+
   //plotAccData();
   plotGyroData();
-  
+  //plotCompareAccGyro();
+
   delay(loopDelay);
-  
+
 }
 
 void setupMPU() {
@@ -276,11 +281,11 @@ void processAccelData() {
 void recordAngleByAcc()
 {
 #ifdef RESTRICT_PITCH // Eq. 25 and 26
-  roll  = atan2(AcY, AcZ) * 180 / pi-rollOffset;
-  pitch = atan2(-AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180 / pi-pitchOffset;
+  roll  = atan2(AcY, AcZ) * 180 / pi - rollOffset;
+  pitch = atan2(-AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180 / pi - pitchOffset;
 #else // Eq. 28 and 29
-  roll  = atan2(AcY, sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180 / pi-rollOffset;
-  pitch = atan2(-AcX, AcZ) * 180 / pi-pitchOffset;
+  roll  = atan2(AcY, sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180 / pi - rollOffset;
+  pitch = atan2(-AcX, AcZ) * 180 / pi - pitchOffset;
 #endif
 
 
@@ -334,16 +339,17 @@ void processGyroData() {
     default:
       LSB = 131.0;                    //FS_SEL ±250°/s
   }
-  rotX = (float)(GyX-GyXo) / LSB;
-  rotY = (float)(GyY-GyYo) / LSB;
-  rotZ = (float)(GyZ-GyZo) / LSB;
+  rotX = (double)(GyX - GyXo) / LSB;
+  rotY = (double)(GyY - GyYo) / LSB;
+  rotZ = (double)(GyZ - GyZo) / LSB;
 }
 
 void recordAngleByGyro(double dt)
 {
-    //角速度累加
+  //角速度累加
   gyroXangle += rotX * dt; // Calculate gyro angle without any filter
   gyroYangle += rotY * dt;
+  gyroZangle += rotZ * dt;
 }
 
 
@@ -370,12 +376,27 @@ void plot(String label, double value, bool last)
 
 void plotAccData()
 {
-  plot("pitch(deg)", pitch, false);
-  plot("roll(deg)", roll, true);
+  //输出通过加速度计反正切计算的俯仰横滚角度值
+  plot("pitch", pitch, false);
+  plot("roll", roll, true);
 }
+
 
 void plotGyroData()
 {
-  plot("pitch(deg)", gyroYangle, false);
-  plot("roll(deg)", gyroXangle, true);
+  //输出通过陀螺仪测量的角速度和时间积分计算的俯仰横滚角度值
+  plot("pitch", gyroYangle, false);
+  plot("roll", gyroXangle, false);
+  plot("yaw", gyroZangle, true);
+}
+
+
+void plotCompareAccGyro()
+{
+  plot("Acc_pitch", pitch, false);
+  plot("Gyro_pitch", gyroYangle, false);
+
+  plot("Acc_roll", roll, false);
+  plot("Gyro_roll", gyroXangle, true);
+
 }
