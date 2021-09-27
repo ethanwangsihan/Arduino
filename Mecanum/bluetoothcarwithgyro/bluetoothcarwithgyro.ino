@@ -102,6 +102,7 @@ void loop() {
       lcd.setCursor(0, 1);
       lcd.print("Y:");
       lcd.print(gyroZangle);
+      lcd.print("          ");
     }
 
     delay(loopDelay);
