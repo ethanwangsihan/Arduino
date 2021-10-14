@@ -2,8 +2,8 @@
 #define IN3  2
 #define IN4  4
 #define ENB  6
-#define MINPWM 25
-#define MAXPWM 45
+#define MINPWM 40
+#define MAXPWM 65
 
 void setup() {
   //设置串口波特率
