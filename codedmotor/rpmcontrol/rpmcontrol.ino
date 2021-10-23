@@ -6,21 +6,44 @@
 #define IN3  3
 #define IN4  4
 #define ENB  5
-#define MAXPWM 250
+#define MAXPWM 255
+#define MINPWM 75
+
+#define MINRPM 0
+#define MAXRPM 4900
 
 volatile long pulseNum = 0;
 
 uint32_t timer;
-int loopDelay = 150;
+int loopDelay = 0;
 int idx = 0;
 
 
-double consKp = 0.001, consKi = 0.003, consKd = 0.0005;
-double aggKp = 0.005, aggKi = 0.005, aggKd = 0.001;
+double consKp = 0.0045, consKi = 0.5, consKd = 0.00125;
+double aggKp = 0.0095, aggKi = 0.9, aggKd = 0.0025;
 
 enum motorMode {CW, CCW, STOP};
-
 double TargetPoint;
+
+void plot(String label, double value, bool last)
+{
+  Serial.print(label);
+
+  if (label != "")
+  {
+    Serial.print(":");
+  }
+  Serial.print(value);
+
+  if (last == false)
+  {
+    Serial.print(",");
+  }
+  else
+  {
+    Serial.println();
+  }
+}
 
 class CodedMotor
 {
@@ -33,10 +56,10 @@ class CodedMotor
     double aggKp, aggKi, aggKd;
     motorMode mM = STOP;
     double Setpoint = 0, Input, Output;
-    double TargetPoint = 0;
-    PID myPID = PID(&Input, &Output, &Setpoint, aggKp, aggKi, aggKd, AUTOMATIC);
+    PID myPID = PID(&Input, &Output, &Setpoint, aggKp, aggKi, aggKd, DIRECT);
 
   public:
+
     CodedMotor(int in1, int in2, int en, double ckp, double cki, double ckd, double akp, double aki, double akd)
     {
       IN_1 = in1;
@@ -53,12 +76,24 @@ class CodedMotor
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
+
+      myPID.SetMode(AUTOMATIC);
+
     };
+
+    void stop()
+    {
+      digitalWrite(IN_1, LOW);
+      digitalWrite(IN_2, LOW);
+      mM = STOP;
+      analogWrite(EN, 0);
+      return;
+    }
 
     void outPut(motorMode mm, double targetPoint, double inputPoint)
     {
 
-      if (mm == STOP || (mm == CW && mM == CCW) || (mm == CCW && mM == CW))
+      if (mm == STOP || (mm == CW && mM == CCW) || (mm == CCW && mM == CW) || targetPoint == 0)
       {
         digitalWrite(IN_1, LOW);
         digitalWrite(IN_2, LOW);
@@ -86,7 +121,10 @@ class CodedMotor
 
       gap = abs(gap); //distance away from setpoint
 
-      if (gap < 300)
+      myPID.SetTunings(consKp, consKi, consKd);
+
+/*
+      if (gap < 100 || Setpoint <300)
       { //we're close to setpoint, use conservative tuning parameters
         myPID.SetTunings(consKp, consKi, consKd);
       }
@@ -95,7 +133,7 @@ class CodedMotor
         //we're far from setpoint, use aggressive tuning parameters
         myPID.SetTunings(aggKp, aggKi, aggKd);
       }
-
+*/
       myPID.Compute();
 
       if (Output > MAXPWM)
@@ -105,9 +143,14 @@ class CodedMotor
 
       analogWrite(EN, Output);
     };
+
+    motorMode getMode()
+    {
+      return mM;
+    }
 };
 
-CodedMotor cm1=CodedMotor(IN3,IN4,ENB,consKp,consKi,consKd,aggKp,aggKi,aggKd);
+CodedMotor cm1 = CodedMotor(IN3, IN4, ENB, consKp, consKi, consKd, aggKp, aggKi, aggKd);
 
 void setup() {
 
@@ -120,10 +163,10 @@ void setup() {
   pinMode(2, INPUT);
 
   attachInterrupt(digitalPinToInterrupt(2), encoderISR, CHANGE);
- 
+
   timer = 0;
 
-  MsTimer2::set(50, timerIntFun);         /* 设置 （每【100】毫秒执行一次 定时器中断函数）*/
+  MsTimer2::set(100, timerIntFun);         /* 设置 （每【100】毫秒执行一次 定时器中断函数）*/
   MsTimer2::start();                                          /* 开始  启动这个定时器中断 */
 
 }
@@ -143,22 +186,38 @@ void loop() {
 
   uint32_t dT = micros() - timer;
 
-  double actRpm = pulseNum * 2307692.3 / dT;
+  double actRpm = pulseNum * 2727272.7 / dT;
   pulseNum = 0;
   timer = micros();
   interrupts();
 
   if (TargetPoint > 0)
   {
-    cm1.outPut(CW,TargetPoint,actRpm);
+    cm1.outPut(CW, TargetPoint, actRpm);
   }
   else if (TargetPoint < 0 )
   {
-    cm1.outPut(CCW,-TargetPoint,actRpm);
+    cm1.outPut(CCW, -TargetPoint, actRpm);
+  }
+  else if (TargetPoint == 0)
+  {
+    cm1.stop();
   }
 
   plot("TargetPoint:", TargetPoint, false);
-  plot("actRpm:", actRpm, true);
+
+  if (cm1.getMode() == CW)
+  {
+    plot("actRpm:", actRpm, true);
+  }
+  else if (cm1.getMode() == CCW)
+  {
+    plot("actRpm:", -actRpm, true);
+  }
+  else if (cm1.getMode() == STOP)
+  {
+    plot("actRpm:", 0, true);
+  }
 
   delay(loopDelay);
 }
@@ -169,27 +228,23 @@ void encoderISR()
 }
 
 
-void plot(String label, double value, bool last)
-{
-  Serial.print(label);
-
-  if (label != "")
-  {
-    Serial.print(":");
-  }
-  Serial.print(value);
-
-  if (last == false)
-  {
-    Serial.print(",");
-  }
-  else
-  {
-    Serial.println();
-  }
-}
 
 void timerIntFun() {
-  TargetPoint = sin(idx * 3.14159265 / 180.0) * 8000;
+  TargetPoint = sin(idx * 3.14159265 / 180.0) * 4900;
+  if (TargetPoint > MAXRPM)
+  {
+    TargetPoint = MAXRPM;
+  }
+
+  if (TargetPoint < -MAXRPM)
+  {
+    TargetPoint = -MAXRPM;
+  }
+
+  if (TargetPoint > -MINRPM && TargetPoint < MINRPM)
+  {
+    TargetPoint = 0;
+  }
+
   idx = idx + 1;
 }

@@ -1,9 +1,9 @@
 
-#define IN3  2
+#define IN3  3
 #define IN4  4
-#define ENB  6
-#define MINPWM 40
-#define MAXPWM 65
+#define ENB  5
+#define MINPWM 75
+#define MAXPWM 255
 
 void setup() {
   //设置串口波特率
@@ -31,7 +31,7 @@ void loop() {
     analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
     Serial.print("CW:");
     Serial.println(n);
-    delay(500);
+    delay(100);
     n++;
   }
 
@@ -45,7 +45,7 @@ void loop() {
     analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
     Serial.print("CW:");
     Serial.println(n);
-    delay(500);
+    delay(100);
     n--;
   }
 
@@ -55,7 +55,7 @@ void loop() {
   digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
   digitalWrite(IN4, LOW);
   Serial.println("Stop");
-  delay(500);
+  delay(100);
 
   //////////////////////////////
   //逆时针加速到最快MAXPWM
@@ -68,7 +68,7 @@ void loop() {
     analogWrite(ENB, n); //ENA要输出PWM信号(0-255)
     Serial.print("CCW:");
     Serial.println(n);
-    delay(500);
+    delay(100);
     n++;
   }
 
@@ -82,7 +82,7 @@ void loop() {
     analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
     Serial.print("CCW:");
     Serial.println(n);
-    delay(500);
+    delay(100);
     n--;
   }
 
@@ -94,7 +94,7 @@ void loop() {
   digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
   digitalWrite(IN4, LOW);
   Serial.println("Stop");
-  delay(500);
+  delay(100);
 
 
 }
