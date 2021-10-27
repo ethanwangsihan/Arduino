@@ -2,18 +2,26 @@
 #define IN3  3
 #define IN4  4
 #define ENB  5
-#define MINPWM 25
-#define MAXPWM 65
-volatile unsigned long JSQ = 0;
-uint32_t timer;
 
+volatile unsigned long JSQ = 0; //用来收集电机霍尔传感发来的脉冲数量
+uint32_t timer; //用来保存霍尔传感器计数的开始时间
+
+double targetRpm = 5000;
+
+double Kp = 0.001, Ki=0, Kd=0.0003;
+double lastError;
+double ErrorIntegral;
+int pwm = 0;
+int loopdelay=100;
+
+//由数字管脚2的中断触发
 void externalIntFun() {
   JSQ++;
 }
 
 void setup() {
   Serial.begin(9600);
-  attachInterrupt(digitalPinToInterrupt(2), externalIntFun, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(2), externalIntFun, CHANGE); //注册中断关联的函数externalIntFun
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
@@ -24,91 +32,65 @@ void setup() {
 
 void loop() {
 
+  noInterrupts(); //停止响应中断
+  uint32_t now = micros();
+  uint32_t dT = now - timer; //计算霍尔传感器计数用的时间
+  double actRpm = JSQ * 2307693.31 / dT; //用霍尔传感器计数除以计数时间计算每分钟的电机转速, 电机每转一圈发送26个霍尔传感器脉冲, dT的单位是微秒(百万分之一秒)
+  JSQ = 0; //计算转速后, 计数器清零, 为下次计算转速做准备.
+  timer = micros(); // 计时器清零
+  interrupts(); //恢复中断响应
 
-  //////////////////////////////
-  /////顺时针加速到最快MAXPWM/////
-  //////////////////////////////
-  int n = MINPWM;
+  plot("Rpm", actRpm, true);
+
+  double error = targetRpm - actRpm;
+
+  pwm = pwm + Pterm(error)+Dterm(error, dT);
+
+  /*
+    double error=targetRpm-actRpm;
+
+    //计算根据P参数得到的调整Pwm
+    double PWMp=Pterm(error);
+
+    //计算根据D参数得到的调整Pwm
+    double PWMd=Dterm(error,dT);
+
+    //计算根据I参数得到的调整Pwm
+    double PWMi=Dterm(error,dT);
+
+    double PWMall=PWMp+PWMi+PWMd;
+
+    if (PWMall>255)
+    {
+    PWMall=255;
+    }
+    else if (PWMall <0)
+    {
+    PWMall=0;
+    }
+
+
+    analogWrite(ENB, (int)PWMall); //ENA要输出PWM信号（0-255）
+  */
+
   digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
   digitalWrite(IN4, HIGH);
 
-  while (n < MAXPWM)
+  if (pwm > 255)
   {
-    analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
-    plot("pwm", n, false);
-    double rpm = calculateRpm();
-    plot("rpm", rpm, true);
-    delay(400);
-    n++;
+    pwm = 255;
   }
-
-  delay(400);
-
-  //////////////////////////////
-  //顺时针到减速到MINPWM
-  //////////////////////////////
-  while (n > MINPWM)
+  else if (pwm < 0)
   {
-    analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
-    plot("pwm", n, false);
-    double rpm = calculateRpm();
-    plot("rpm", rpm, true);
-    delay(400);
-    n--;
+    pwm = 0;
   }
-
-  //////////////////////////////
-  //完全停止
-  //////////////////////////////
-  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN4, LOW);
-  //Serial.println("Stop");
-  delay(400);
-
-  //////////////////////////////
-  //逆时针加速到最快MAXPWM
-  //////////////////////////////
-  digitalWrite(IN3, HIGH); //IN1和IN2只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN4, LOW);
-
-  while (n < MAXPWM)
-  {
-    analogWrite(ENB, n); //ENA要输出PWM信号(0-255)
-    plot("pwm", n, false);
-    double rpm = calculateRpm();
-    plot("rpm", rpm, true);
-    delay(400);
-    n++;
-  }
-
-  delay(400);
-
-  //////////////////////////////
-  //逆时针到减速到MINPWM
-  //////////////////////////////
-  while (n > MINPWM)
-  {
-    analogWrite(ENB, n); //ENA要输出PWM信号（0-255）
-    plot("pwm", n, false);
-    double rpm = calculateRpm();
-    plot("rpm", rpm, true);
-    delay(400);
-    n--;
-  }
-
-  delay(400);
-
-  //////////////////////////////
-  //完全停止
-  //////////////////////////////
-  digitalWrite(IN3, LOW); //IN1和IN2只要输出高电平信号或低电平信号就可以
-  digitalWrite(IN4, LOW);
-  //Serial.println("Stop");
-  delay(400);
-
+  analogWrite(ENB, pwm);
+  delay(loopdelay);
 
 }
 
+
+//在串口绘图仪上画点
 void plot(String label, double value, bool last)
 {
   Serial.print(label);
@@ -130,13 +112,40 @@ void plot(String label, double value, bool last)
 
 }
 
-double calculateRpm()
+//////////////////////////////
+//计算电机当前转速
+//////////////////////////////
+
+double calculateRpm(uint32_t now)
 {
-  noInterrupts();
-  uint32_t dT = micros() - timer;
-  double actRpm = JSQ * 19230.77 / dT;
-  JSQ = 0;
-  timer = micros();
-  interrupts();
+  noInterrupts(); //停止响应中断
+  uint32_t dT = now - timer; //计算霍尔传感器计数用的时间
+  double actRpm = JSQ * 19230.77 / dT; //用霍尔传感器计数除以计数时间计算每分钟的电机转速, 电机每转一圈发送26个霍尔传感器脉冲, dT的单位是微秒(百万分之一秒)
+  JSQ = 0; //计算转速后, 计数器清零, 为下次计算转速做准备.
+  timer = micros(); // 计时器清零
+  interrupts(); //恢复中断响应
   return actRpm;
+}
+
+//比例调节
+double Pterm(double error)
+{
+  double PWMp = Kp * error;
+  return PWMp;
+}
+
+double Dterm(double error, uint32_t dt)
+{
+  double dError = error - lastError;
+  double errorSpeed = dError / dt;
+  double PWMd = Kd * errorSpeed;
+  lastError = error;
+  return PWMd;
+}
+
+double Iterm(double error, uint32_t dt)
+{
+  ErrorIntegral = ErrorIntegral + error * dt;
+  double PWMi = Ki * ErrorIntegral;
+  return PWMi;
 }
