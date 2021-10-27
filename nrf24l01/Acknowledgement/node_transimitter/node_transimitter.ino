@@ -66,10 +66,10 @@ void setup() {
   radio.enableAckPayload();
 
   // set the TX address of the RX node into the TX pipe
-  radio.openWritingPipe(WritingPipeAddress);     // always uses pipe 0
+  radio.openWritingPipe(ReadingPipeAddress);     // always uses pipe 0
 
   // set the RX address of the TX node into a RX pipe
-  radio.openReadingPipe(1, ReadingPipeAddress); // using pipe 1
+  radio.openReadingPipe(1, WritingPipeAddress); // using pipe 1
 
   // additional setup specific to the node's role
 
