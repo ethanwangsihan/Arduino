@@ -1,14 +1,14 @@
 
-#define IN3  3
-#define IN4  4
-#define ENB  5
+#define IN3  37
+#define IN4  39
+#define ENB  41
 
 volatile unsigned long JSQ = 0; //用来收集电机霍尔传感发来的脉冲数量
 uint32_t timer; //用来保存霍尔传感器计数的开始时间
 
-double targetRpm = 5000;
+double targetRpm = 4000;
 
-double Kp = 0.001, Ki=0, Kd=0.0003;
+double Kp = 0.001, Ki=0, Kd=0.00;
 double lastError;
 double ErrorIntegral;
 int pwm = 0;
@@ -21,7 +21,7 @@ void externalIntFun() {
 
 void setup() {
   Serial.begin(9600);
-  attachInterrupt(digitalPinToInterrupt(2), externalIntFun, CHANGE); //注册中断关联的函数externalIntFun
+  attachInterrupt(digitalPinToInterrupt(21), externalIntFun, CHANGE); //注册中断关联的函数externalIntFun
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
   pinMode(ENB, OUTPUT);
@@ -35,7 +35,7 @@ void loop() {
   noInterrupts(); //停止响应中断
   uint32_t now = micros();
   uint32_t dT = now - timer; //计算霍尔传感器计数用的时间
-  double actRpm = JSQ * 2307693.31 / dT; //用霍尔传感器计数除以计数时间计算每分钟的电机转速, 电机每转一圈发送26个霍尔传感器脉冲, dT的单位是微秒(百万分之一秒)
+  double actRpm = JSQ * 2727272.73 / dT; //用霍尔传感器计数除以计数时间计算每分钟的电机转速, 电机每转一圈发送26个霍尔传感器脉冲, dT的单位是微秒(百万分之一秒)
   JSQ = 0; //计算转速后, 计数器清零, 为下次计算转速做准备.
   timer = micros(); // 计时器清零
   interrupts(); //恢复中断响应
@@ -84,7 +84,7 @@ void loop() {
   {
     pwm = 0;
   }
-  analogWrite(ENB, pwm);
+  analogWrite(ENB, 128);
   delay(loopdelay);
 
 }

@@ -1,26 +1,21 @@
-#include <PID_v1.h>
-//https://playground.arduino.cc/Code/PIDLibraryAdaptiveTuningsExample/
-//https://playground.arduino.cc/Code/PIDLibaryBasicExample/
 #include <FlexiTimer2.h>
 
-#define IN3  51
-#define IN4  49
-#define ENB  53
+#define IN3  26
+#define IN4  28
+#define ENB  6
 #define MAXPWM 255
 
-#define MINRPM 0
-#define MAXRPM 5000
+
+#define MAXRPM 4900
 
 volatile long pulseNum = 0;
 
 uint32_t timer;
-int loopDelay =0;
+int loopDelay = 0;
 int idx = 0;
 
-
-double Kp = 0.028, Ki = 0, Kd = 0.00001;
-
-
+//double Kp = 0.07, Ki = 0.025, Kd = 0.01; // 1,2,4
+double Kp = 0.05, Ki = 0.03, Kd = 0.0065; //3
 enum motorMode {CW, CCW, STOP};
 double TargetPoint;
 
@@ -51,42 +46,73 @@ class CodedMotor
     int IN_2;
     int EN;
 
-    motorMode mM = STOP;
-    double Setpoint = 0, Input, Output;
+    double mKp, mKi, mKd;
+    motorMode mM;
 
-    PID myPID=PID(&Input, &Output, &Setpoint, 0, 0, 0, DIRECT);
+
+    double lastError;
+    double lastLastError;
+    double errorLimit = 200;
+    double Output;
+
+    //比例调节
+    double Pterm(double Kp, double error, double lasterror)
+    {
+      double PWMp = Kp * (error - lasterror);
+      return PWMp;
+    }
+
+    //微分调节
+    double Dterm(double Kd, double error, double lasterror, double lastlasterror)
+    {
+      double doubleLastError = 2 * lasterror;
+      double PWMd = Kd * (error - doubleLastError + lastlasterror);
+      return PWMd;
+    }
+
+    //积分调节
+    double Iterm(double Ki, double error)
+    {
+      double PWMi = Ki * error;
+      return PWMi;
+    }
 
   public:
-    CodedMotor(int in1, int in2, int en, double ikp, double iki, double ikd) //构造函数
+
+    CodedMotor(int in1, int in2, int en, double kp, double ki, double kd) //构造函数
     {
-      
       IN_1 = in1;
       IN_2 = in2;
       EN = en;
-      Kp=ikp;
-      Ki=iki;
-      Kd=ikd;
-
-      myPID.SetTunings(ikp, iki, ikd);
-      myPID.SetMode(AUTOMATIC);
+      mKp = kp;
+      mKi = ki;
+      mKd = kd;
+      //stop motor first
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
+      lastError = 0;
+      lastLastError = 0;
+      Output = 0;
 
     };
 
-    void stop()
+    void stop()  //停止电机
     {
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
+      lastError = 0;
+      lastLastError = 0;
+      Output = 0;
       return;
     }
 
     void outPut(motorMode mm, double targetPoint, double inputPoint)
     {
+
 
       if (mm == STOP || (mm == CW && mM == CCW) || (mm == CCW && mM == CW) || targetPoint == 0)
       {
@@ -94,23 +120,25 @@ class CodedMotor
         stop();
         return;
       }
-      else if (mm == CW)
+      else if (mm == CW && mM != CW)
       {
         mM = CW;
         digitalWrite(IN_1, LOW);
         digitalWrite(IN_2, HIGH);
       }
-      else if (mm == CCW)
+      else if (mm == CCW && mM != CCW)
       {
         mM = CCW;
         digitalWrite(IN_1, HIGH);
         digitalWrite(IN_2, LOW);
       }
 
-      Setpoint = targetPoint;
-      Input = inputPoint;
+      double error=targetPoint-inputPoint;
 
-      myPID.Compute();
+      Output = Output + Pterm(mKp, error, lastError) + Iterm(mKi, error) + Dterm(mKd, error, lastError, lastLastError);
+
+      lastLastError=lastError;
+      lastError=error;
 
       if (Output > MAXPWM)
       {
@@ -118,6 +146,7 @@ class CodedMotor
       }
 
       analogWrite(EN, Output);
+
     };
 
     motorMode getMode()
@@ -138,12 +167,12 @@ void setup() {
   pinMode(ENB, OUTPUT);
   pinMode(2, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(18), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(20), encoderISR, CHANGE);
 
   timer = 0;
-
   FlexiTimer2::set(50, timerIntFun);         /* 设置 （每【100】毫秒执行一次 定时器中断函数）*/
   FlexiTimer2::start();                                          /* 开始  启动这个定时器中断 */
+
 
 }
 
@@ -203,9 +232,7 @@ void encoderISR()
   pulseNum++;
 }
 
-
-
 void timerIntFun() {
-  TargetPoint = sin(idx * 3.14159265 / 180.0) * 4900;
+  TargetPoint = sin(idx * 3.14159265 / 180.0) * MAXRPM;
   idx = idx + 1;
 }
