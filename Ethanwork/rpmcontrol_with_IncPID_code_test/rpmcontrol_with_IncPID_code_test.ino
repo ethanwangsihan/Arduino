@@ -1,10 +1,11 @@
-//#include <SoftwareSerial.h>
+
 
 #define MAXPWM 255
 
-#define MOTOR1IN1  51
-#define MOTOR1IN2  53
+#define MOTOR1IN1  53
+#define MOTOR1IN2  51
 #define MOTOR1EN  4
+
 
 #define MOTOR2IN1  49
 #define MOTOR2IN2  47
@@ -17,7 +18,6 @@
 #define MOTOR4IN1  22
 #define MOTOR4IN2  24
 #define MOTOR4EN 7
-
 
 #define MAXRPM 4500
 #define MINRPM 500
@@ -48,25 +48,46 @@ void motor4PulseNum()
   m4PulseNum++;
 }
 
-
 uint32_t timer;
 int loopDelay = 10;
 
+
 double M1Kp = 0.07, M1Ki = 0.025, M1Kd = 0.01; // Motor1 PID
 double M2Kp = 0.08, M2Ki = 0.018, M2Kd = 0.01; // Motor2 PID
-double M3Kp = 0.05, M3Ki = 0.03, M3Kd = 0.0065; // Motor3 PID
+double M3Kp = 0.05, M3Ki = 0.025, M3Kd = 0.0065; // Motor3 PID
 double M4Kp = 0.07, M4Ki = 0.025, M4Kd = 0.01; // Motor4 PID
+//double Kp = 0.05, Ki = 0.03, Kd = 0.0065; //3
+enum motorMode {CW, CCW, STOP};
 
 int v = -1;
-
-//oftwareSerial m = SoftwareSerial(A0, A1);
-
 
 enum CARMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, CARSTOP};
 enum COMMAND {AHEAD, BACK, LEFT, RIGHT, LEFTAHEAD, RIGHTAHEAD, LEFTBACK, RIGHTBACK, CLOCKWISE, COUNTERCLOCKWISE, STAND, FAST, SLOW};
 
 COMMAND carCMD;
 CARMODE carMode;
+
+
+
+void plot(String label, double value, bool last)
+{
+  Serial.print(label);
+
+  if (label != "")
+  {
+    Serial.print(F(":"));
+  }
+  Serial.print(value);
+
+  if (last == false)
+  {
+    Serial.print(F(","));
+  }
+  else
+  {
+    Serial.println();
+  }
+}
 
 class CodedMotor
 {
@@ -76,8 +97,6 @@ class CodedMotor
     int EN;
 
     double mKp, mKi, mKd;
-
-    enum motorMode {CW, CCW, STOP};
     motorMode mM;
 
     double lastError;
@@ -228,17 +247,21 @@ class CodedMotor
 };
 
 
+
+
+
+
 //CodedMotor motor1 = CodedMotor(MOTOR1IN1, MOTOR1IN2, MOTOR1EN, M1Kp, M1Ki, M1Kd);
 CodedMotor motor2 = CodedMotor(MOTOR2IN1, MOTOR2IN2, MOTOR2EN, M2Kp, M2Ki, M2Kd);
 CodedMotor motor3 = CodedMotor(MOTOR3IN1, MOTOR3IN2, MOTOR3EN, M3Kp, M3Ki, M3Kd);
 CodedMotor motor4 = CodedMotor(MOTOR4IN1, MOTOR4IN2, MOTOR4EN, M4Kp, M4Ki, M4Kd);
 
+
 //停车
 void carStop()
 {
-  Serial.println("carStop");
-  noInterrupts();
-  //motor1.stop();
+
+//  motor1.stop();
   motor2.stop();
   motor3.stop();
   motor4.stop();
@@ -249,11 +272,12 @@ void carStop()
   timer = 0;
 }
 
+
 //向前
 void moveAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
+//  motor1.outPutCW(CURRENTRPM, m1actrpm);
   motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
@@ -263,7 +287,7 @@ void moveAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrp
 void moveBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCCW(CURRENTRPM, m1actrpm);
+//  motor1.outPutCCW(CURRENTRPM, m1actrpm);
   motor2.outPutCCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
@@ -273,8 +297,8 @@ void moveBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm
 void moveLeft(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
-  motor2.outPutCCW(CURRENTRPM, m2actrpm);
+//  motor1.outPutCCW(CURRENTRPM, m1actrpm);
+  motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
 
@@ -284,8 +308,8 @@ void moveLeft(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm
 void moveRight(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCCW(CURRENTRPM, m1actrpm);
-  motor2.outPutCW(CURRENTRPM, m2actrpm);
+//  motor1.outPutCW(CURRENTRPM, m1actrpm);
+  motor2.outPutCCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
 }
@@ -295,7 +319,7 @@ void moveRight(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrp
 void moveCCW(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
+//  motor1.outPutCW(CURRENTRPM, m1actrpm);
   motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
@@ -311,6 +335,7 @@ void moveCW(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
 }
+
 
 //根据小车状态, 维持小车轮着转速和方向
 void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
@@ -348,9 +373,8 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 }
 
 void setup() {
-  //m.begin(9600);
+
   Serial.begin(9600);
-  Serial.println("car setup");
   //设置m1引脚模式
   pinMode(MOTOR1IN1, OUTPUT);
   pinMode(MOTOR1IN2, OUTPUT);
@@ -386,137 +410,97 @@ void setup() {
 }
 
 void loop() {
-
-
+  ////////////
   //检测蓝牙信号
+  ////////////
   v = Serial.read();
 
-  /*
-         enum CARMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, CARSTOP};
-         enum COMMAND {AHEAD, BACK, LEFT, RIGHT, LEFTAHEAD, RIGHTAHEAD, LEFTBACK, RIGHTBACK, CLOCKWISE, COUNTERCLOCKWISE, STAND, FAST, SLOW};
 
-         COMMAND carCMD;
-         CARMODE carMode;
-         double c;
-  */
-
-  if (v != -1 ) // 检查是否有从蓝牙模块接收到字符。
+  if (v == 'f' ||
+      v == 's' ||
+      v == 'b' ||
+      v == 'r' ||
+      v == 'l' ||
+      v == 'u' ||
+      v == 'v' )
   {
-
-    switch (v)// 将字符转换成控制指令变量。
+    switch (v)
     {
       case 'f':
         {
-
-          Serial.println("AHEAD");
           carCMD = AHEAD;
-          break;
-        };
-      case 'b':
-        {
-          Serial.println("BACK");
-          carCMD = BACK;
-          break;
-        };
-
-      case 'l':
-        {
-          Serial.println("LEFT");
-          carCMD = LEFT;
-          break;
-        };
-
-      case 'r':
-        {
-          Serial.println("RIGHT");
-          carCMD = RIGHT;
-          break;
-        };
-      /*
-        case '':
-        {
-          carCMD = LEFTAHEAD;
-          break;
-        };
-
-        case '':
-        {
-          carCMD = RIGHTAHEAD;
-          break;
-        };
-
-        case '':
-        {
-          carCMD = LEFTBACK;
-          break;
-        };
-
-        case '':
-        {
-          carCMD = RIGHTBACK;
-          break;
-        };
-      */
-      case 'c':
-        {
-          Serial.println("CLOCKWISE");
-          carCMD = CLOCKWISE;
-          break;
-        };
-
-      case 'w':
-        {
-          Serial.println("COUNTERCLOCKWISE");
-          carCMD = COUNTERCLOCKWISE;
           break;
         };
 
       case 's':
         {
-          Serial.println("STAND");
           carCMD = STAND;
           break;
         };
 
-      case '+':
+      case 'b':
         {
-          Serial.println("FAST");
+          carCMD = BACK;
+          break;
+        }
+
+      case 'r':
+        {
+          carCMD = RIGHT;
+          break;
+        };
+
+      case 'l':
+        {
+          carCMD = LEFT;
+          break;
+        };
+
+      case 'u':
+        {
+          carCMD = CLOCKWISE;
+          break;
+        };
+
+      case 'v':
+        {
+          carCMD = COUNTERCLOCKWISE;
+          break;
+        };
+
+      case 'p':
+        {
           carCMD = FAST;
           break;
         };
 
-      case '-':
+      case 'm':
         {
-          Serial.println("SLOW");
           carCMD = SLOW;
           break;
         };
     }
 
-    if (carCMD == STAND)// 判断小车的当前状态是否已经是停止状态。
+
+
+    if (carCMD != STAND)
     {
+
       if (carMode != CARSTOP)
       {
-        carStop();
-        carMode = CARSTOP;
-      }
-
-    }
-    else
-    {
-      if ((carCMD == AHEAD and carMode != MOVEAHEAD) or
-          (carCMD == BACK and carMode != MOVEBACK) or
-          (carCMD == LEFT and carMode != MOVELEFT) or
-          (carCMD == RIGHT and carMode != MOVERIGHT) or
-          (carCMD == LEFTAHEAD and carMode != MOVELEFTAHEAD) or
-          (carCMD == RIGHTAHEAD and carMode != MOVERIGHTAHEAD) or
-          (carCMD == LEFTBACK and carMode != MOVELEFTBACK) or
-          (carCMD == RIGHTBACK and carMode != MOVERIGHTBACK) or
-          (carCMD == CLOCKWISE and carMode != MOVECW) or
-          (carCMD == COUNTERCLOCKWISE and carMode != MOVECCW))
-      {
-
-        if (carMode != CARSTOP)
+        //如果当前车的运动状态会发生变化, 那么需要先将车停止
+        if (
+          (carCMD == AHEAD && carMode != MOVEAHEAD) ||
+          (carCMD == BACK && carMode != MOVEBACK) ||
+          (carCMD == LEFT && carMode != MOVELEFT) ||
+          (carCMD == RIGHT && carMode != MOVERIGHT) ||
+          (carCMD == LEFTAHEAD && carMode != MOVELEFTAHEAD) ||
+          (carCMD == RIGHTAHEAD && carMode != MOVERIGHTAHEAD) ||
+          (carCMD == LEFTBACK && carMode != MOVELEFTBACK) ||
+          (carCMD == RIGHTBACK && carMode != MOVERIGHTBACK) ||
+          (carCMD == CLOCKWISE && carMode != MOVECW) ||
+          (carCMD == COUNTERCLOCKWISE && carMode != MOVECCW)
+        )
         {
           carStop();
         }
@@ -527,60 +511,78 @@ void loop() {
         case AHEAD:
           {
             carMode = MOVEAHEAD;
+            Serial.println("MOVEAHEAD");
             break;
           };
         case BACK:
           {
             carMode = MOVEBACK;
+            Serial.println("MOVEBACK");
             break;
           };
         case LEFT:
           {
             carMode = MOVELEFT;
+            Serial.println("MOVELEFT");
             break;
           };
         case RIGHT:
           {
             carMode = MOVERIGHT;
+            Serial.println("MOVERIGHT");
             break;
           };
         case LEFTAHEAD:
           {
             carMode = MOVELEFTAHEAD;
+            Serial.println("MOVELEFTAHEAD");
             break;
           };
         case RIGHTAHEAD:
           {
             carMode = MOVERIGHTAHEAD;
+            Serial.println("MOVERIGHTAHEAD");
             break;
           };
         case LEFTBACK:
           {
             carMode = MOVELEFTBACK;
+            Serial.println("MOVELEFTBACK");
             break;
           };
         case RIGHTBACK:
           {
             carMode = MOVERIGHTBACK;
+            Serial.println("MOVERIGHTBACK");
             break;
           };
         case CLOCKWISE:
           {
             carMode = MOVECW;
+            Serial.println("MOVECW");
             break;
           };
         case COUNTERCLOCKWISE:
           {
             carMode = MOVECCW;
+            Serial.println("MOVECCW");
             break;
           };
       }
     }
+    else if (carMode != CARSTOP)
+    {
+      carStop();
+      carMode = CARSTOP;
+    }
+
   }
 
-  if (carMode != CARSTOP)    // 判断，小车当前状态变量的值是否为停止状态。
+  if (carMode != CARSTOP)
   {
-    // 测量电机转速
+    //测量电机转速, 并维持当前运动状态
+
+    //开始电机测速
     uint32_t now = micros();
 
     //第一次启动只做计时和计数器清零
@@ -592,33 +594,45 @@ void loop() {
       m2PulseNum = 0;
       m3PulseNum = 0;
       m4PulseNum = 0;
-      interrupts();
       return;
     }
 
     //获取电机编码器的计数, 得到转速
     noInterrupts();
+
     uint32_t dT = now - timer;
-    double motor1actRpm = m1PulseNum * 2727272.73 / dT;
+
+    double motor1actRpm = m1PulseNum * 2727272.7 / dT;
     m1PulseNum = 0;
 
-    double motor2actRpm = m2PulseNum * 2727272.73 / dT;
+    double motor2actRpm = m2PulseNum * 2727272.7 / dT;
     m2PulseNum = 0;
 
-    double motor3actRpm = m3PulseNum * 2727272.73 / dT;
+    double motor3actRpm = m3PulseNum * 2727272.7 / dT;
     m3PulseNum = 0;
 
-    double motor4actRpm = m4PulseNum * 2727272.73 / dT;
+    double motor4actRpm = m4PulseNum * 2727272.7 / dT;
     m4PulseNum = 0;
 
     timer = now;
     interrupts();
 
-    // 通过PID算法来维持小车运动状态和电机转速。
+/*
+    plot(F("Motor1Rpm:"), motor1actRpm, false);
+    plot(F("Motor2Rpm:"), motor2actRpm, false);
+    plot(F("Motor3Rpm:"), motor3actRpm, false);
+    plot(F("Motor4Rpm:"), motor4actRpm, false);
+    plot(F("TargetPoint:"), CURRENTRPM, true);
+*/
+
+    /////////////////
+    //闭环控制, 维持小车之前的运动状态
     carMove(motor1actRpm, motor2actRpm, motor3actRpm, motor4actRpm);
+
   }
 
-
   v = -1;
+
   delay(loopDelay);
+
 }

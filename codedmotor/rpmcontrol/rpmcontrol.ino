@@ -3,22 +3,22 @@
 //https://playground.arduino.cc/Code/PIDLibaryBasicExample/
 #include <FlexiTimer2.h>
 
-#define IN3  51
-#define IN4  49
-#define ENB  53
+#define IN3  26
+#define IN4  28
+#define ENB  6
 #define MAXPWM 255
 
 #define MINRPM 0
-#define MAXRPM 5000
+#define MAXRPM 4500
 
 volatile long pulseNum = 0;
 
 uint32_t timer;
-int loopDelay =0;
+int loopDelay = 10;
 int idx = 0;
 
 
-double Kp = 0.028, Ki = 0, Kd = 0.00001;
+double Kp = 0.055, Ki = 0, Kd = 0.02;
 
 
 enum motorMode {CW, CCW, STOP};
@@ -30,13 +30,13 @@ void plot(String label, double value, bool last)
 
   if (label != "")
   {
-    Serial.print(":");
+    Serial.print(F(":"));
   }
   Serial.print(value);
 
   if (last == false)
   {
-    Serial.print(",");
+    Serial.print(F(","));
   }
   else
   {
@@ -51,24 +51,24 @@ class CodedMotor
     int IN_2;
     int EN;
 
-    motorMode mM = STOP;
-    double Setpoint = 0, Input, Output;
+    motorMode mM;
 
-    PID myPID=PID(&Input, &Output, &Setpoint, 0, 0, 0, DIRECT);
+    double Setpoint, Input, Output;
+
+    PID myPID = PID(&Input, &Output, &Setpoint, 0, 0, 0, DIRECT);
 
   public:
-    CodedMotor(int in1, int in2, int en, double ikp, double iki, double ikd) //构造函数
+
+    CodedMotor(int in1, int in2, int en, double kp, double ki, double kd) //构造函数
     {
-      
       IN_1 = in1;
       IN_2 = in2;
       EN = en;
-      Kp=ikp;
-      Ki=iki;
-      Kd=ikd;
 
-      myPID.SetTunings(ikp, iki, ikd);
+      myPID.SetTunings(kp, ki, kd);
       myPID.SetMode(AUTOMATIC);
+
+      //stop motor first
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
@@ -76,8 +76,13 @@ class CodedMotor
 
     };
 
-    void stop()
+    void stop()  //停止电机
     {
+      if (mM == STOP)
+      {
+        return;
+      }
+
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
@@ -85,22 +90,52 @@ class CodedMotor
       return;
     }
 
-    void outPut(motorMode mm, double targetPoint, double inputPoint)
+    outPutCW(double targetPoint, double inputPoint)
     {
-
-      if (mm == STOP || (mm == CW && mM == CCW) || (mm == CCW && mM == CW) || targetPoint == 0)
+      if (targetPoint > MAXRPM)
       {
-        //如果要求电机目标状态为STOP, 或者电机当前转向和电机目标转向相反,或者要求目标转速为0时,停止电机转动
+        targetPoint = MAXRPM;
+      }
+      else if (targetPoint < MINRPM)
+      {
         stop();
         return;
       }
-      else if (mm == CW)
+
+      if (mM != CW)
       {
         mM = CW;
         digitalWrite(IN_1, LOW);
         digitalWrite(IN_2, HIGH);
       }
-      else if (mm == CCW)
+
+      Setpoint = targetPoint;
+      Input = inputPoint;
+
+      myPID.Compute();
+
+      if (Output > MAXPWM)
+      {
+        Output = MAXPWM;
+      }
+
+      analogWrite(EN, Output);
+
+    }
+
+    outPutCCW(double targetPoint, double inputPoint)
+    {
+      if (targetPoint > MAXRPM)
+      {
+        targetPoint = MAXRPM;
+      }
+      else if (targetPoint < MINRPM)
+      {
+        stop();
+        return;
+      }
+
+      if (mM != CCW)
       {
         mM = CCW;
         digitalWrite(IN_1, HIGH);
@@ -118,13 +153,15 @@ class CodedMotor
       }
 
       analogWrite(EN, Output);
-    };
+
+    }
 
     motorMode getMode()
     {
       return mM;
     }
 };
+
 
 CodedMotor cm1 = CodedMotor(IN3, IN4, ENB, Kp, Ki, Kd);
 
@@ -138,7 +175,7 @@ void setup() {
   pinMode(ENB, OUTPUT);
   pinMode(2, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(18), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(20), encoderISR, CHANGE);
 
   timer = 0;
 
@@ -169,32 +206,37 @@ void loop() {
 
   if (TargetPoint > 0)
   {
-    cm1.outPut(CW, TargetPoint, actRpm);
+    cm1.outPutCW(TargetPoint, actRpm);
   }
   else if (TargetPoint < 0 )
   {
-    cm1.outPut(CCW, -TargetPoint, actRpm);
+    cm1.outPutCCW( -TargetPoint, actRpm);
   }
   else if (TargetPoint == 0)
   {
     cm1.stop();
   }
+/*
+  Serial.print(F("Target:"));
+  Serial.println(TargetPoint);
+  Serial.print(F(", actRpm:"));
+  Serial.println(actRpm);
+  */
 
-  plot("TargetPoint:", TargetPoint, false);
-
-  if (cm1.getMode() == CW)
+  /*if (cm1.getMode() == CW)
   {
-    plot("actRpm:", actRpm, true);
+    plot(F("actRpm:"), actRpm, false);
   }
   else if (cm1.getMode() == CCW)
   {
-    plot("actRpm:", -actRpm, true);
+    plot(F("actRpm:"), -actRpm, false);
   }
   else if (cm1.getMode() == STOP)
   {
-    plot("actRpm:", 0, true);
+    plot(F("actRpm:"), 0, false);
   }
-
+  plot(F("TargetPoint:"), TargetPoint, true);*/
+  
   delay(loopDelay);
 }
 
