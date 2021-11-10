@@ -1,28 +1,31 @@
 #include <PID_v1.h>
+
 //https://playground.arduino.cc/Code/PIDLibraryAdaptiveTuningsExample/
 //https://playground.arduino.cc/Code/PIDLibaryBasicExample/
-#include <FlexiTimer2.h>
 
-#define IN3  26
-#define IN4  28
-#define ENB  6
+#define IN3  22
+#define IN4  24
+#define ENB  7
 #define MAXPWM 255
-
 #define MINRPM 0
-#define MAXRPM 4500
+#define MAXRPM 5000
 
 volatile long pulseNum = 0;
 
 uint32_t timer;
-int loopDelay = 10;
+int loopDelay = 100;
 int idx = 0;
 
+//double Kp = 0.055, Ki = 0.12, Kd = 0.0015; //2,3
+double Kp = 0.04, Ki = 0.2, Kd = 0.001; //4
 
-double Kp = 0.055, Ki = 0, Kd = 0.02;
+double TargetPoint = 1500;
 
+void encoderISR()
+{
+  pulseNum++;
+}
 
-enum motorMode {CW, CCW, STOP};
-double TargetPoint;
 
 void plot(String label, double value, bool last)
 {
@@ -30,20 +33,19 @@ void plot(String label, double value, bool last)
 
   if (label != "")
   {
-    Serial.print(F(":"));
+    Serial.print(":");
   }
   Serial.print(value);
 
   if (last == false)
   {
-    Serial.print(F(","));
+    Serial.print(",");
   }
   else
   {
     Serial.println();
   }
 }
-
 class CodedMotor
 {
   private:
@@ -51,11 +53,14 @@ class CodedMotor
     int IN_2;
     int EN;
 
+    double mKp, mKi, mKd;
+
+
+    enum motorMode {CW, CCW, STOP};
     motorMode mM;
 
     double Setpoint, Input, Output;
-
-    PID myPID = PID(&Input, &Output, &Setpoint, 0, 0, 0, DIRECT);
+    PID myPID = PID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
   public:
 
@@ -64,15 +69,17 @@ class CodedMotor
       IN_1 = in1;
       IN_2 = in2;
       EN = en;
-
-      myPID.SetTunings(kp, ki, kd);
-      myPID.SetMode(AUTOMATIC);
+      mKp = kp;
+      mKi = ki;
+      mKd = kd;
 
       //stop motor first
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
+      myPID.SetMode(AUTOMATIC);
+
 
     };
 
@@ -92,21 +99,21 @@ class CodedMotor
 
     outPutCW(double targetPoint, double inputPoint)
     {
-      if (targetPoint > MAXRPM)
-      {
-        targetPoint = MAXRPM;
-      }
-      else if (targetPoint < MINRPM)
+      if (targetPoint < MINRPM)
       {
         stop();
         return;
       }
-
-      if (mM != CW)
+      else if (mM != CW)
       {
         mM = CW;
         digitalWrite(IN_1, LOW);
         digitalWrite(IN_2, HIGH);
+      }
+
+      if (targetPoint > MAXRPM)
+      {
+        targetPoint = MAXRPM;
       }
 
       Setpoint = targetPoint;
@@ -125,27 +132,28 @@ class CodedMotor
 
     outPutCCW(double targetPoint, double inputPoint)
     {
-      if (targetPoint > MAXRPM)
-      {
-        targetPoint = MAXRPM;
-      }
-      else if (targetPoint < MINRPM)
+      if (targetPoint < MINRPM)
       {
         stop();
         return;
       }
-
-      if (mM != CCW)
+      else if (mM != CCW)
       {
         mM = CCW;
         digitalWrite(IN_1, HIGH);
         digitalWrite(IN_2, LOW);
       }
 
+      if (targetPoint > MAXRPM)
+      {
+        targetPoint = MAXRPM;
+      }
+
       Setpoint = targetPoint;
       Input = inputPoint;
 
       myPID.Compute();
+
 
       if (Output > MAXPWM)
       {
@@ -162,7 +170,6 @@ class CodedMotor
     }
 };
 
-
 CodedMotor cm1 = CodedMotor(IN3, IN4, ENB, Kp, Ki, Kd);
 
 void setup() {
@@ -175,79 +182,39 @@ void setup() {
   pinMode(ENB, OUTPUT);
   pinMode(2, INPUT);
 
-  attachInterrupt(digitalPinToInterrupt(20), encoderISR, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(21), encoderISR, CHANGE);
 
   timer = 0;
-
-  FlexiTimer2::set(50, timerIntFun);         /* 设置 （每【100】毫秒执行一次 定时器中断函数）*/
-  FlexiTimer2::start();                                          /* 开始  启动这个定时器中断 */
 
 }
 
 void loop() {
+
+  uint32_t now = micros();
 
   //获取电机编码器的计数, 得到转速
   noInterrupts();
   if (timer == 0)
   {
     //for the first time
-    timer = micros();
+    timer = now;
     pulseNum = 0;
     interrupts();
     return;
   }
 
-  uint32_t dT = micros() - timer;
+  uint32_t dT = now - timer;
 
-  double actRpm = pulseNum * 2727272.7 / dT;
+  double actRpm = pulseNum * 2727272.73/ dT;
   pulseNum = 0;
-  timer = micros();
+  timer = now;
   interrupts();
 
-  if (TargetPoint > 0)
-  {
-    cm1.outPutCW(TargetPoint, actRpm);
-  }
-  else if (TargetPoint < 0 )
-  {
-    cm1.outPutCCW( -TargetPoint, actRpm);
-  }
-  else if (TargetPoint == 0)
-  {
-    cm1.stop();
-  }
-/*
-  Serial.print(F("Target:"));
-  Serial.println(TargetPoint);
-  Serial.print(F(", actRpm:"));
-  Serial.println(actRpm);
-  */
+  cm1.outPutCW(TargetPoint, actRpm);
 
-  /*if (cm1.getMode() == CW)
-  {
-    plot(F("actRpm:"), actRpm, false);
-  }
-  else if (cm1.getMode() == CCW)
-  {
-    plot(F("actRpm:"), -actRpm, false);
-  }
-  else if (cm1.getMode() == STOP)
-  {
-    plot(F("actRpm:"), 0, false);
-  }
-  plot(F("TargetPoint:"), TargetPoint, true);*/
-  
+  plot("TargetPoint:", TargetPoint, false);
+  plot("actRpm:", actRpm, true);
+
+
   delay(loopDelay);
-}
-
-void encoderISR()
-{
-  pulseNum++;
-}
-
-
-
-void timerIntFun() {
-  TargetPoint = sin(idx * 3.14159265 / 180.0) * 4900;
-  idx = idx + 1;
 }

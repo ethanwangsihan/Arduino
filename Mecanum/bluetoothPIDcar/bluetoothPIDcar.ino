@@ -1,4 +1,5 @@
-//#include <SoftwareSerial.h>
+#include <LedControl.h>
+#include <PID_v1.h>
 
 #define MAXPWM 255
 
@@ -21,7 +22,29 @@
 
 #define MAXRPM 4500
 #define MINRPM 500
-#define CURRENTRPM 1500
+#define CURRENTRPM 2000
+
+LedControl lc = LedControl(A2, A3, A4, 1); //初始化点阵
+
+byte ahead[8] = {0x18, 0x3c, 0x5a, 0x99, 0x18, 0x18, 0x18, 0x18};
+byte back[8] = {0x18, 0x18, 0x18, 0x18, 0x99, 0x5a, 0x3c, 0x18};
+byte left[8] = {0x10, 0x20, 0x40, 0xff, 0xff, 0x40, 0x20, 0x10};
+byte right[8] = {0x08, 0x04, 0x02, 0xff, 0xff, 0x02, 0x04, 0x08};
+byte right_ahead[8] = {0x1f, 0x03, 0x05, 0x09, 0x11, 0x20, 0x40, 0x80};
+byte left_ahead[8] = {0xf8, 0xc0, 0xa0, 0x90, 0x88, 0x04, 0x02, 0x01};
+byte right_back[8] = {0x80, 0x40, 0x20, 0x11, 0x09, 0x05, 0x03, 0x1f};
+byte left_back[8] = {0x01, 0x02, 0x04, 0x88, 0x90, 0xa0, 0xc0, 0xf8};
+byte CCW[8] = {0x3c, 0x42, 0x81, 0xe1, 0xc1, 0x81, 0x02, 0x3c};
+byte CW[8] = {0x3c, 0x42, 0x81, 0x81, 0x87, 0x83, 0x41, 0x38};
+byte ST[8] = {0x3c, 0x42, 0x81, 0xbd, 0xbd, 0x81, 0x42, 0x3c};
+byte zero[8] = {0x3c, 0x42, 0x46, 0x4a, 0x52, 0x62, 0x42, 0x3c}; // 0
+byte one[8] = {0x08, 0x18, 0x28, 0x08, 0x08, 0x08, 0x08, 0x3e}; // 1
+byte two[8] = {0x3c, 0x42, 0x02, 0x04, 0x08, 0x10, 0x20, 0x7e}; // 2
+byte three[8] = {0x3c, 0x42, 0x02, 0x1c, 0x02, 0x02, 0x42, 0x3c}; // 3
+byte four[8] = {0x04, 0x0c, 0x14, 0x24, 0x44, 0x7e, 0x04, 0x04}; // 4
+byte five[8] = {0x7e, 0x40, 0x7c, 0x02, 0x02, 0x02, 0x02, 0x7c}; // 5
+
+
 
 volatile long m1PulseNum = 0;
 volatile long m2PulseNum = 0;
@@ -50,12 +73,12 @@ void motor4PulseNum()
 
 
 uint32_t timer;
-int loopDelay = 10;
+int loopDelay = 100;
 
-double M1Kp = 0.07, M1Ki = 0.025, M1Kd = 0.01; // Motor1 PID
-double M2Kp = 0.08, M2Ki = 0.018, M2Kd = 0.01; // Motor2 PID
-double M3Kp = 0.05, M3Ki = 0.03, M3Kd = 0.0065; // Motor3 PID
-double M4Kp = 0.07, M4Ki = 0.025, M4Kd = 0.01; // Motor4 PID
+double M1Kp = 0.055, M1Ki = 0.12, M1Kd = 0.0015; // Motor1 PID
+double M2Kp = 0.055, M2Ki = 0.12, M2Kd = 0.0015; // Motor2 PID
+double M3Kp = 0.055, M3Ki = 0.12, M3Kd = 0.0015; // Motor3 PID
+double M4Kp = 0.04, M4Ki = 0.2, M4Kd = 0.001; // Motor4 PID
 
 int v = -1;
 
@@ -65,7 +88,7 @@ int v = -1;
 enum CARMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, CARSTOP};
 enum COMMAND {AHEAD, BACK, LEFT, RIGHT, LEFTAHEAD, RIGHTAHEAD, LEFTBACK, RIGHTBACK, CLOCKWISE, COUNTERCLOCKWISE, STAND, FAST, SLOW};
 
-COMMAND carCMD;
+
 CARMODE carMode;
 
 class CodedMotor
@@ -75,36 +98,11 @@ class CodedMotor
     int IN_2;
     int EN;
 
-    double mKp, mKi, mKd;
-
     enum motorMode {CW, CCW, STOP};
     motorMode mM;
 
-    double lastError;
-    double lastLastError;
-    double Output;
-
-    //比例调节
-    double Pterm(double Kp, double error, double lasterror)
-    {
-      double PWMp = Kp * (error - lasterror);
-      return PWMp;
-    }
-
-    //微分调节
-    double Dterm(double Kd, double error, double lasterror, double lastlasterror)
-    {
-      double doubleLastError = 2 * lasterror;
-      double PWMd = Kd * (error - doubleLastError + lastlasterror);
-      return PWMd;
-    }
-
-    //积分调节
-    double Iterm(double Ki, double error)
-    {
-      double PWMi = Ki * error;
-      return PWMi;
-    }
+    double Setpoint, Input, Output;
+    PID myPID=PID(&Input, &Output, &Setpoint, 0.055, 0.12, 0.0015, DIRECT);;
 
   public:
 
@@ -113,18 +111,14 @@ class CodedMotor
       IN_1 = in1;
       IN_2 = in2;
       EN = en;
-      mKp = kp;
-      mKi = ki;
-      mKd = kd;
 
       //stop motor first
       digitalWrite(IN_1, LOW);
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
-      lastError = 0;
-      lastLastError = 0;
-      Output = 0;
+      myPID.SetMode(AUTOMATIC);
+      myPID.SetTunings( kp, ki, kd);
 
     };
 
@@ -139,9 +133,6 @@ class CodedMotor
       digitalWrite(IN_2, LOW);
       mM = STOP;
       analogWrite(EN, 0);
-      lastError = 0;
-      lastLastError = 0;
-      Output = 0;
       return;
     }
 
@@ -157,9 +148,6 @@ class CodedMotor
         mM = CW;
         digitalWrite(IN_1, LOW);
         digitalWrite(IN_2, HIGH);
-        lastError = 0;
-        lastLastError = 0;
-        Output = 0;
       }
 
       if (targetPoint > MAXRPM)
@@ -167,12 +155,10 @@ class CodedMotor
         targetPoint = MAXRPM;
       }
 
-      double error = targetPoint - inputPoint;
+      Setpoint = targetPoint;
+      Input = inputPoint;
 
-      Output = Output + Pterm(mKp, error, lastError) + Iterm(mKi, error) + Dterm(mKd, error, lastError, lastLastError);
-
-      lastLastError = lastError;
-      lastError = error;
+      myPID.Compute();
 
       if (Output > MAXPWM)
       {
@@ -195,9 +181,6 @@ class CodedMotor
         mM = CCW;
         digitalWrite(IN_1, HIGH);
         digitalWrite(IN_2, LOW);
-        lastError = 0;
-        lastLastError = 0;
-        Output = 0;
       }
 
       if (targetPoint > MAXRPM)
@@ -205,12 +188,11 @@ class CodedMotor
         targetPoint = MAXRPM;
       }
 
-      double error = targetPoint - inputPoint;
+      Setpoint = targetPoint;
+      Input = inputPoint;
 
-      Output = Output + Pterm(mKp, error, lastError) + Iterm(mKi, error) + Dterm(mKd, error, lastError, lastLastError);
+      myPID.Compute();
 
-      lastLastError = lastError;
-      lastError = error;
 
       if (Output > MAXPWM)
       {
@@ -228,7 +210,7 @@ class CodedMotor
 };
 
 
-//CodedMotor motor1 = CodedMotor(MOTOR1IN1, MOTOR1IN2, MOTOR1EN, M1Kp, M1Ki, M1Kd);
+CodedMotor motor1 = CodedMotor(MOTOR1IN1, MOTOR1IN2, MOTOR1EN, M1Kp, M1Ki, M1Kd);
 CodedMotor motor2 = CodedMotor(MOTOR2IN1, MOTOR2IN2, MOTOR2EN, M2Kp, M2Ki, M2Kd);
 CodedMotor motor3 = CodedMotor(MOTOR3IN1, MOTOR3IN2, MOTOR3EN, M3Kp, M3Ki, M3Kd);
 CodedMotor motor4 = CodedMotor(MOTOR4IN1, MOTOR4IN2, MOTOR4EN, M4Kp, M4Ki, M4Kd);
@@ -236,9 +218,8 @@ CodedMotor motor4 = CodedMotor(MOTOR4IN1, MOTOR4IN2, MOTOR4EN, M4Kp, M4Ki, M4Kd)
 //停车
 void carStop()
 {
-  Serial.println("carStop");
-  noInterrupts();
-  //motor1.stop();
+  //Serial.println("carStop");
+  motor1.stop();
   motor2.stop();
   motor3.stop();
   motor4.stop();
@@ -253,7 +234,7 @@ void carStop()
 void moveAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCW(CURRENTRPM, m1actrpm);
   motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
@@ -263,7 +244,7 @@ void moveAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrp
 void moveBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCCW(CURRENTRPM, m1actrpm);
   motor2.outPutCCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
@@ -273,7 +254,7 @@ void moveBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm
 void moveLeft(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCW(CURRENTRPM, m1actrpm);
   motor2.outPutCCW(CURRENTRPM, m2actrpm);
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
@@ -284,7 +265,7 @@ void moveLeft(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm
 void moveRight(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCCW(CURRENTRPM, m1actrpm);
   motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
@@ -295,7 +276,7 @@ void moveRight(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrp
 void moveCCW(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
-  //  motor1.outPutCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCW(CURRENTRPM, m1actrpm);
   motor2.outPutCW(CURRENTRPM, m2actrpm);
   motor3.outPutCW(CURRENTRPM, m3actrpm);
   motor4.outPutCW(CURRENTRPM, m4actrpm);
@@ -306,7 +287,7 @@ void moveCW(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
 
 
-  //motor1.outPutCCW(CURRENTRPM, m1actrpm);
+  motor1.outPutCCW(CURRENTRPM, m1actrpm);
   motor2.outPutCCW(CURRENTRPM, m2actrpm);
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
@@ -319,38 +300,62 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
   switch (carMode)
   {
     case MOVEAHEAD: {
-
+        updateLed(ahead);
         moveAhead( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
     case MOVEBACK: {
+        updateLed(back);
         moveBack( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
     case MOVELEFT: {
+        updateLed(left);
         moveLeft( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
     case MOVERIGHT: {
+        updateLed(right);
         moveRight( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
 
     case MOVECW: {
+        updateLed(CW);
         moveCW( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
     case MOVECCW: {
+        updateLed(CCW);
         moveCCW( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
   }
 }
 
+
+void updateLed(byte Sprite[])
+{
+  lc.clearDisplay(0);//清除显示
+  for (int i = 0; i <= 7; i++)
+  {
+    lc.setRow(0, i, Sprite[i]);
+  }
+}
+
+
+
 void setup() {
-  //m.begin(9600);
-  Serial.begin(9600);
+
+  Serial.begin(115200);
+  Serial3.begin(9600);
   Serial.println("car setup");
+
+  lc.shutdown(0, false); //启动点阵屏
+  lc.setIntensity(0, 4); //调节亮度，级别从0到15
+  lc.clearDisplay(0);//清除显示
+
+
   //设置m1引脚模式
   pinMode(MOTOR1IN1, OUTPUT);
   pinMode(MOTOR1IN2, OUTPUT);
@@ -382,6 +387,7 @@ void setup() {
   timer = 0;
 
   carMode = CARSTOP;
+  updateLed(ST);
 
 }
 
@@ -389,46 +395,37 @@ void loop() {
 
 
   //检测蓝牙信号
-  v = Serial.read();
-
-  /*
-         enum CARMODE {MOVEAHEAD, MOVEBACK, MOVELEFT, MOVERIGHT, MOVELEFTAHEAD, MOVERIGHTAHEAD, MOVELEFTBACK, MOVERIGHTBACK, MOVECW, MOVECCW, CARSTOP};
-         enum COMMAND {AHEAD, BACK, LEFT, RIGHT, LEFTAHEAD, RIGHTAHEAD, LEFTBACK, RIGHTBACK, CLOCKWISE, COUNTERCLOCKWISE, STAND, FAST, SLOW};
-
-         COMMAND carCMD;
-         CARMODE carMode;
-         double c;
-  */
+  v = Serial3.read();
 
   if (v != -1 ) // 检查是否有从蓝牙模块接收到字符。
   {
-
+    COMMAND carCMD;
     switch (v)// 将字符转换成控制指令变量。
     {
       case 'f':
         {
 
-          Serial.println("AHEAD");
+          //Serial.println("AHEAD");
           carCMD = AHEAD;
           break;
         };
       case 'b':
         {
-          Serial.println("BACK");
+          //Serial.println("BACK");
           carCMD = BACK;
           break;
         };
 
       case 'l':
         {
-          Serial.println("LEFT");
+          //Serial.println("LEFT");
           carCMD = LEFT;
           break;
         };
 
       case 'r':
         {
-          Serial.println("RIGHT");
+          //Serial.println("RIGHT");
           carCMD = RIGHT;
           break;
         };
@@ -459,35 +456,35 @@ void loop() {
       */
       case 'c':
         {
-          Serial.println("CLOCKWISE");
+          //Serial.println("CLOCKWISE");
           carCMD = CLOCKWISE;
           break;
         };
 
       case 'w':
         {
-          Serial.println("COUNTERCLOCKWISE");
+          //Serial.println("COUNTERCLOCKWISE");
           carCMD = COUNTERCLOCKWISE;
           break;
         };
 
       case 's':
         {
-          Serial.println("STAND");
+          //Serial.println("STAND");
           carCMD = STAND;
           break;
         };
 
       case '+':
         {
-          Serial.println("FAST");
+          //Serial.println("FAST");
           carCMD = FAST;
           break;
         };
 
       case '-':
         {
-          Serial.println("SLOW");
+          //Serial.println("SLOW");
           carCMD = SLOW;
           break;
         };
@@ -499,6 +496,7 @@ void loop() {
       {
         carStop();
         carMode = CARSTOP;
+        updateLed(ST);
       }
 
     }
@@ -620,5 +618,7 @@ void loop() {
 
 
   v = -1;
+
   delay(loopDelay);
+
 }
