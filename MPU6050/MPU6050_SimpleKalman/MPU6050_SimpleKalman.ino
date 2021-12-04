@@ -1,4 +1,6 @@
+#include <SimpleKalmanFilter.h>
 #include <Wire.h>
+
 
 
 //const int MPU_addr = 0x69;             // I2C address of MPU-6050 当6050的AD0引脚接高电平时, MPU_addr地址为0x69
@@ -7,7 +9,8 @@ const int MPU_addr = 0x68;             // I2C address of MPU-6050 当6050的AD0�
 long AcXo = 0, AcYo = 0, AcZo = 0;    //加速度计偏移量或误差
 long GyXo = 0, GyYo = 0, GyZo = 0;    //陀螺仪偏移量或误差
 
-int16_t AcX, AcY, AcZ;                 //保存从加速度计读取的原始数据accelerometer - force it to be a 16-bit integer
+
+int16_t AcXKalman, AcYKalman, AcZKalman;    //保存经过Kalman滤波之后的估计结果
 double gForceX, gForceY, gForceZ;    //将结果转换成重力加速度, 其实算出来没什么用, 因为横滚俯仰是通过各个轴向数据的比例算出来的
 
 double roll, pitch;                   //横滚, 俯仰角度
@@ -17,7 +20,9 @@ int16_t Tmp;
 
 int AcRange = 0;                       //accelerometer Range at the cost of Sensitivity - see setupMPU
 
-int16_t GyX, GyY, GyZ;                 //保存从陀螺仪中读取的原始数据gyroscope - force it to be a 16-bit integer
+
+int16_t GyXKalman, GyYKalman, GyZKalman;//保存经过Kalman滤波之后的估计结果
+
 double rotX, rotY, rotZ;
 double gyroXangle = 0, gyroYangle = 0, gyroZangle = 0; // Angle calculate using the gyro only
 
@@ -29,10 +34,19 @@ double pi = 3.14159265;
 
 int loopDelay = 1;
 
+SimpleKalmanFilter simpleKalmanFilterAccX(15, 15, 0.01);
+SimpleKalmanFilter simpleKalmanFilterAccY(15, 15, 0.01);
+SimpleKalmanFilter simpleKalmanFilterAccZ(15, 15, 0.01);
+SimpleKalmanFilter simpleKalmanFilterGyX(15, 15, 0.01);
+SimpleKalmanFilter simpleKalmanFilterGyY(15, 15, 0.01);
+SimpleKalmanFilter simpleKalmanFilterGyZ(15, 15, 0.01);
+
 void setup() {
   Serial.begin(9600);
   Wire.begin();
+  Serial.println("See you");
   setupMPU();
+  Serial.println("See you 2");
 
   for (int i = 0; i < 50; i++) //可能是为了读出初始化后产生的脏数据
   {
@@ -40,6 +54,8 @@ void setup() {
     recordGyro();
   }
 
+  
+  
   delay(1000);
 
   int times = 2000;             //采样次数
@@ -47,8 +63,8 @@ void setup() {
   {
     recordAccel();
     recordGyro();
-    AcXo += AcX; AcYo += AcY; AcZo += AcZ;      //采样和
-    GyXo += GyX; GyYo += GyY; GyZo += GyZ;
+    AcXo += AcXKalman; AcYo += AcYKalman; AcZo += AcZKalman;      //采样和
+    GyXo += GyXKalman; GyYo += GyYKalman; GyZo += GyZKalman;
     delay(2);
   }
 
@@ -231,14 +247,22 @@ void recordAccel() {
       must store the first value and shift it 8 bits over and OR it
       with the second value to form the 16 bit value.
   */
+  int16_t AcX, AcY, AcZ;                 //保存从加速度计读取的原始数据accelerometer - force it to be a 16-bit integer
   //Local Variable
   byte buffer[6];
 
   readFrom(0x3B, 6, buffer);
   AcX = buffer[0] << 8 | buffer[1];    //Store two bytes 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
-  //AcX = buffer[0]*256+buffer[1];     // OR you could also do this
   AcY = buffer[2] << 8 | buffer[3];    //Store two bytes 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
   AcZ = buffer[4] << 8 | buffer[5];    //Store two bytes 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+
+  
+  AcXKalman = simpleKalmanFilterAccX.updateEstimate(AcX);    //Store two bytes 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)
+  AcYKalman = simpleKalmanFilterAccY.updateEstimate(AcY);    //Store two bytes 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
+  AcZKalman = simpleKalmanFilterAccZ.updateEstimate(AcZ);    //Store two bytes 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
+  
+
+  
 
 }
 
@@ -273,20 +297,20 @@ void processAccelData() {
     default:
       LSB = 16384.0;                  //AFS_SEL ±2g
   }
-  gForceX = (float)AcX / LSB;
-  gForceY = (float)AcY / LSB;
-  gForceZ = (float)AcZ / LSB;
+  gForceX = (float)AcXKalman / LSB;
+  gForceY = (float)AcYKalman / LSB;
+  gForceZ = (float)AcZKalman / LSB;
 }
 
 
 void recordAngleByAcc()
 {
 #ifdef RESTRICT_PITCH // Eq. 25 and 26
-  roll  = atan2(AcY, AcZ) * 180 / pi - rollOffset;
-  pitch = atan2(-AcX, sqrt(pow(AcY, 2) + pow(AcZ, 2))) * 180 / pi - pitchOffset;
+  roll  = atan2(AcYKalman, AcZKalman) * 180 / pi - rollOffset;
+  pitch = atan2(-AcXKalman, sqrt(pow(AcYKalman, 2) + pow(AcZKalman, 2))) * 180 / pi - pitchOffset;
 #else // Eq. 28 and 29
-  roll  = atan2(AcY, sqrt(pow(AcX, 2) + pow(AcZ, 2))) * 180 / pi - rollOffset;
-  pitch = atan2(-AcX, AcZ) * 180 / pi - pitchOffset;
+  roll  = atan2(AcYKalman, sqrt(pow(AcXKalman, 2) + pow(AcZKalman, 2))) * 180 / pi - rollOffset;
+  pitch = atan2(-AcXKalman, AcZKalman) * 180 / pi - pitchOffset;
 #endif
 
 
@@ -299,6 +323,8 @@ void recordGyro() {
       must store the first value and shift it 8 bits over and OR it
       with the second value to form the 16 bit value.
   */
+  int16_t GyX, GyY, GyZ;                 //保存从陀螺仪中读取的原始数据gyroscope - force it to be a 16-bit integer
+  
   //Local Variable
   byte buffer[6];
 
@@ -306,6 +332,9 @@ void recordGyro() {
   GyX = buffer[0] << 8 | buffer[1];    //Store two bytes 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   GyY = buffer[2] << 8 | buffer[3];    //Store two bytes 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   GyZ = buffer[4] << 8 | buffer[5];    //Store two bytes 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+  GyXKalman=simpleKalmanFilterGyX.updateEstimate(GyX);
+  GyYKalman=simpleKalmanFilterGyY.updateEstimate(GyY);
+  GyZKalman=simpleKalmanFilterGyZ.updateEstimate(GyZ);
 
 }
 
@@ -340,9 +369,9 @@ void processGyroData() {
     default:
       LSB = 131.0;                    //FS_SEL ±250°/s
   }
-  rotX = (double)(GyX - GyXo) / LSB;
-  rotY = (double)(GyY - GyYo) / LSB;
-  rotZ = (double)(GyZ - GyZo) / LSB;
+  rotX = (double)(GyXKalman - GyXo) / LSB;
+  rotY = (double)(GyYKalman - GyYo) / LSB;
+  rotZ = (double)(GyZKalman - GyZo) / LSB;
 }
 
 void recordAngleByGyro(double dt)
@@ -377,9 +406,10 @@ void plot(String label, double value, bool last)
 
 void plotAccData()
 {
-  //输出通过加速度计反正切计算的俯仰横滚角度值
-  plot("pitch", pitch, false);
-  plot("roll", roll, true);
+  plot("AcXKalman", AcXKalman, false);
+  plot("AcYKalman", AcYKalman, false);
+  plot("AcZKalman", AcZKalman, true);
+
 }
 
 
