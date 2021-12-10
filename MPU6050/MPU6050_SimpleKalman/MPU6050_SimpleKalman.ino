@@ -32,7 +32,7 @@ uint32_t timer;                        //微分时间, 用来累加陀螺仪的�
 
 double pi = 3.14159265;
 
-int loopDelay = 1;
+int loopDelay = 0;
 
 SimpleKalmanFilter simpleKalmanFilterAccX(15, 15, 0.01);
 SimpleKalmanFilter simpleKalmanFilterAccY(15, 15, 0.01);
@@ -46,7 +46,7 @@ void setup() {
   Wire.begin();
   Serial.println("See you");
   setupMPU();
-  Serial.println("See you 2");
+  
 
   for (int i = 0; i < 50; i++) //可能是为了读出初始化后产生的脏数据
   {
@@ -131,10 +131,10 @@ void setupMPU() {
      |        | Reset |       |       |     |Disable|  (clock source) |
      -->Page 9 (in section 4) see Note: The device will come up in sleep mode upon power-up.
   */
-  readFrom(0x6B, 1, buffer);
+  //readFrom(0x6B, 1, buffer);
   c = buffer[1] & 0x07;                //Registry Value AND with 0b00000111 zeros bits 7,6,5,4 & 3
   writeTo(0x6B, c);                    //Then we set the bits to zero and keep the clock source bits the same
-  //OR writeTo(0x6B,0);
+  //writeTo(0x6B,0);
   //Caution: this will also set the clock source to zero - which in this case is ok
   //  if you didn't want to change the clock source (example using an external clock)
   //  use a method like above.
