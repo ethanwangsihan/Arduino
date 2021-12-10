@@ -31,9 +31,9 @@ byte back[8] = {0x18, 0x18, 0x18, 0x18, 0x99, 0x5a, 0x3c, 0x18};
 byte left[8] = {0x10, 0x20, 0x40, 0xff, 0xff, 0x40, 0x20, 0x10};
 byte right[8] = {0x08, 0x04, 0x02, 0xff, 0xff, 0x02, 0x04, 0x08};
 byte right_ahead[8] = {0x1f, 0x03, 0x05, 0x09, 0x11, 0x20, 0x40, 0x80};
-byte left_ahead[8] = {0xf8, 0xc0, 0xa0, 0x90, 0x88, 0x04, 0x02, 0x01};
+byte left_back[8] = {0xf8, 0xc0, 0xa0, 0x90, 0x88, 0x04, 0x02, 0x01};
 byte right_back[8] = {0x80, 0x40, 0x20, 0x11, 0x09, 0x05, 0x03, 0x1f};
-byte left_back[8] = {0x01, 0x02, 0x04, 0x88, 0x90, 0xa0, 0xc0, 0xf8};
+byte left_ahead[8] = {0x01, 0x02, 0x04, 0x88, 0x90, 0xa0, 0xc0, 0xf8};
 byte CCW[8] = {0x3c, 0x42, 0x81, 0xe1, 0xc1, 0x81, 0x02, 0x3c};
 byte CW[8] = {0x3c, 0x42, 0x81, 0x81, 0x87, 0x83, 0x41, 0x38};
 byte ST[8] = {0x3c, 0x42, 0x81, 0xbd, 0xbd, 0x81, 0x42, 0x3c};
@@ -102,7 +102,7 @@ class CodedMotor
     motorMode mM;
 
     double Setpoint, Input, Output;
-    PID myPID=PID(&Input, &Output, &Setpoint, 0.055, 0.12, 0.0015, DIRECT);;
+    PID myPID = PID(&Input, &Output, &Setpoint, 0.055, 0.12, 0.0015, DIRECT);;
 
   public:
 
@@ -215,6 +215,22 @@ CodedMotor motor2 = CodedMotor(MOTOR2IN1, MOTOR2IN2, MOTOR2EN, M2Kp, M2Ki, M2Kd)
 CodedMotor motor3 = CodedMotor(MOTOR3IN1, MOTOR3IN2, MOTOR3EN, M3Kp, M3Ki, M3Kd);
 CodedMotor motor4 = CodedMotor(MOTOR4IN1, MOTOR4IN2, MOTOR4EN, M4Kp, M4Ki, M4Kd);
 
+
+
+
+
+void updateLed(byte Sprite[])
+{
+  lc.clearDisplay(0);//清除显示
+  for (int i = 0; i <= 7; i++)
+  {
+    lc.setRow(0, i, Sprite[i]);
+  }
+}
+
+
+
+
 //停车
 void carStop()
 {
@@ -292,7 +308,46 @@ void moveCW(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
   motor3.outPutCCW(CURRENTRPM, m3actrpm);
   motor4.outPutCCW(CURRENTRPM, m4actrpm);
 }
+// 左前
+void moveLeftAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
+{
 
+  motor1.outPutCW(CURRENTRPM, m1actrpm);
+  motor2.stop();
+  motor3.outPutCCW(CURRENTRPM, m3actrpm);
+  motor4.stop();
+}
+
+
+// 右前
+void moveRightAhead(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
+{
+
+  motor1.stop();
+  motor2.outPutCW(CURRENTRPM, m2actrpm);
+  motor3.stop();
+  motor4.outPutCCW(CURRENTRPM, m4actrpm);
+}
+
+
+// 左后
+void moveLeftBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
+{
+  motor1.stop();
+  motor2.outPutCCW(CURRENTRPM, m2actrpm);
+  motor3.stop();
+  motor4.outPutCW(CURRENTRPM, m4actrpm);
+}
+
+// 右后
+void moveRightBack(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
+{
+
+  motor1.outPutCCW(CURRENTRPM, m1actrpm);
+  motor2.stop();
+  motor3.outPutCW(CURRENTRPM, m3actrpm);
+  motor4.stop();
+}
 //根据小车状态, 维持小车轮着转速和方向
 void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 {
@@ -307,6 +362,7 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
     case MOVEBACK: {
         updateLed(back);
         moveBack( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
+        
         break;
       };
     case MOVELEFT: {
@@ -330,18 +386,33 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
         moveCCW( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
         break;
       };
-  }
+
+    case MOVERIGHTAHEAD: {
+        updateLed(right_ahead);
+        moveRightAhead( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
+        break;
+      };
+    case MOVERIGHTBACK: {
+        updateLed(right_back);
+        moveRightBack( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
+        break;
+      };
+    case MOVELEFTAHEAD: {
+        updateLed(left_back);
+        moveLeftAhead( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
+        break;
+      };
+    case MOVELEFTBACK: {
+        updateLed(left_ahead);
+        moveLeftBack( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
+        break;
+      };
+
+  };
 }
 
 
-void updateLed(byte Sprite[])
-{
-  lc.clearDisplay(0);//清除显示
-  for (int i = 0; i <= 7; i++)
-  {
-    lc.setRow(0, i, Sprite[i]);
-  }
-}
+
 
 
 
@@ -349,7 +420,7 @@ void setup() {
 
   Serial.begin(115200);
   Serial3.begin(9600);
-  Serial.println("car setup");
+  //Serial.println("car setup");
 
   lc.shutdown(0, false); //启动点阵屏
   lc.setIntensity(0, 4); //调节亮度，级别从0到15
@@ -400,60 +471,59 @@ void loop() {
   if (v != -1 ) // 检查是否有从蓝牙模块接收到字符。
   {
     COMMAND carCMD;
+    Serial.println(v);
     switch (v)// 将字符转换成控制指令变量。
     {
       case 'f':
         {
 
-          //Serial.println("AHEAD");
           carCMD = AHEAD;
           break;
         };
       case 'b':
         {
-          //Serial.println("BACK");
+          
           carCMD = BACK;
           break;
         };
 
       case 'l':
         {
-          //Serial.println("LEFT");
           carCMD = LEFT;
           break;
         };
 
       case 'r':
         {
-          //Serial.println("RIGHT");
           carCMD = RIGHT;
           break;
         };
-      /*
-        case '':
+
+      case 'a':
         {
+          
           carCMD = LEFTAHEAD;
           break;
         };
 
-        case '':
+      case 'v':
         {
+          
           carCMD = RIGHTAHEAD;
           break;
         };
 
-        case '':
+      case 'd':
         {
           carCMD = LEFTBACK;
           break;
         };
 
-        case '':
+      case 'e':
         {
           carCMD = RIGHTBACK;
           break;
         };
-      */
       case 'c':
         {
           //Serial.println("CLOCKWISE");
@@ -530,6 +600,7 @@ void loop() {
         case BACK:
           {
             carMode = MOVEBACK;
+            Serial.println("carMode = MOVEBACK;");
             break;
           };
         case LEFT:
