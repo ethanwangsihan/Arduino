@@ -5,7 +5,7 @@
 #include <RF24.h>
 
 RF24 radio(7, 8); // CE, CSN 的引脚
-const byte address[6] = "20181";  //设置标识码
+const byte address[6] = "54188";  //设置标识码
 void setup() {
   radio.begin();
   radio.openWritingPipe(address);
@@ -13,6 +13,8 @@ void setup() {
   radio.stopListening();
 }
 void loop() {
-  unsigned long Rtime = millis()/1000;
+  unsigned long Rtime = 54188;
+  //unsigned long Rtime = millis()/1000;
+  //radio.write(&Rtime,sizeof(Rtime));
   radio.write(&Rtime,sizeof(Rtime));
 }

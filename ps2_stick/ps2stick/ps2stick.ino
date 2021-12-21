@@ -35,7 +35,7 @@ void loop() {
   //y
   if (joy>starty)
   {
-    outy=map(joy,starty,1024,0,-15);
+    outy=map(joy,starty,1023,0,-15);
   }
   else
   {

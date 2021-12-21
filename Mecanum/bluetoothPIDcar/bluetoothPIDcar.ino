@@ -1,9 +1,12 @@
 #include <LedControl.h>
 #include <PID_v1.h>
+#include <nRF24L01.h>
+#include <RF24.h>
+RF24 radio(8, 9); // CE, CSN
 
 #define MAXPWM 255
 
-#define MOTOR1IN1  51
+#define MOTOR1IN1  48
 #define MOTOR1IN2  53
 #define MOTOR1EN  4
 
@@ -44,7 +47,16 @@ byte three[8] = {0x3c, 0x42, 0x02, 0x1c, 0x02, 0x02, 0x42, 0x3c}; // 3
 byte four[8] = {0x04, 0x0c, 0x14, 0x24, 0x44, 0x7e, 0x04, 0x04}; // 4
 byte five[8] = {0x7e, 0x40, 0x7c, 0x02, 0x02, 0x02, 0x02, 0x7c}; // 5
 
+///////////////////////////////////////
 
+const byte address[6] = "54188";
+struct RC_Package {
+  int OutX;
+  int OutY;
+  int Button;
+};
+RC_Package data;
+//////////////////////////////////////
 
 volatile long m1PulseNum = 0;
 volatile long m2PulseNum = 0;
@@ -362,7 +374,7 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
     case MOVEBACK: {
         updateLed(back);
         moveBack( m1actrpm,  m2actrpm,  m3actrpm,  m4actrpm);
-        
+
         break;
       };
     case MOVELEFT: {
@@ -418,9 +430,9 @@ void carMove(double m1actrpm, double m2actrpm, double m3actrpm, double m4actrpm)
 
 void setup() {
 
-  Serial.begin(115200);
-  Serial3.begin(9600);
-  //Serial.println("car setup");
+  Serial.begin(9600);
+
+  Serial.println("car setup");
 
   lc.shutdown(0, false); //启动点阵屏
   lc.setIntensity(0, 4); //调节亮度，级别从0到15
@@ -433,40 +445,103 @@ void setup() {
   pinMode(MOTOR1EN, OUTPUT);
   pinMode(18, INPUT);
   attachInterrupt(digitalPinToInterrupt(18), motor1PulseNum, CHANGE);
-
+  Serial.println("car setup1");
   //设置m2引脚模式
   pinMode(MOTOR2IN1, OUTPUT);
   pinMode(MOTOR2IN2, OUTPUT);
   pinMode(MOTOR2EN, OUTPUT);
   pinMode(19, INPUT);
   attachInterrupt(digitalPinToInterrupt(19), motor2PulseNum, CHANGE);
-
+  Serial.println("car setup2");
   //设置m3引脚模式
   pinMode(MOTOR3IN1, OUTPUT);
   pinMode(MOTOR3IN2, OUTPUT);
   pinMode(MOTOR3EN, OUTPUT);
   pinMode(20, INPUT);
   attachInterrupt(digitalPinToInterrupt(20), motor3PulseNum, CHANGE);
-
+  Serial.println("car setup3");
   //设置m4引脚模式
   pinMode(MOTOR4IN1, OUTPUT);
   pinMode(MOTOR4IN2, OUTPUT);
   pinMode(MOTOR4EN, OUTPUT);
   pinMode(21, INPUT);
   attachInterrupt(digitalPinToInterrupt(21), motor4PulseNum, CHANGE);
-
+  Serial.println("car setup4");
   timer = 0;
 
   carMode = CARSTOP;
   updateLed(ST);
+  Serial.println("car setup5");
+  //////////////////////////////////////
+
+  radio.begin();
+  radio.openReadingPipe(0, address);
+  radio.setPALevel(RF24_PA_MIN);
+  radio.startListening();
+
+  Serial.println("car setup done");
 
 }
 
 void loop() {
+  if (radio.available()) {
+    radio.read(&data, sizeof(RC_Package));
+    Serial.print("outX:");
+    Serial.print(data.OutX);
+    Serial.print(",outY:");
+    Serial.print(data.OutY);
+    Serial.print(",BUTTON:");
+    Serial.println(data.Button);
 
+    if (abs(data.OutX) < 10 && abs(data.OutY) < 10)
+    {
+      v = 's';
+    }
+    else if (abs(data.OutX) < 10 && data.OutY > 10)
+    {
+      v = 'f';
+    }
+    else if (abs(data.OutX) < 10 && data.OutY < -10)
+    {
+      v = 'b';
+    }
+    else if (data.OutX < -10 && abs(data.OutY) < 10)
+    {
+      v = 'l';
+    }
+    else if (data.OutX > 10 && abs(data.OutY) < 10)
+    {
+      v = 'r';
+    }
+    //左前
+    else if (data.OutX <- 10 && data.OutY > 10)
+    {
+      v = 'a';
+    }
+    //右前
+    else if (data.OutX > 10 && data.OutY > 10)
+    {
+      v = 'v';
+    }
+    //左后
+    else if (data.OutX<-10 && data.OutY <- 10)
+    {
+      v = 'd';
+    }
+    //右后
+    else if (data.OutX > 10 && data.OutY<- 10)
+    {
+      v = 'e';
+    }
 
-  //检测蓝牙信号
-  v = Serial3.read();
+  }
+  else
+  {
+    v = -1;
+  }
+
+  ////////////////////////////////////////
+  ////////////////////////////////////////
 
   if (v != -1 ) // 检查是否有从蓝牙模块接收到字符。
   {
@@ -482,7 +557,7 @@ void loop() {
         };
       case 'b':
         {
-          
+
           carCMD = BACK;
           break;
         };
@@ -501,14 +576,14 @@ void loop() {
 
       case 'a':
         {
-          
+
           carCMD = LEFTAHEAD;
           break;
         };
 
       case 'v':
         {
-          
+
           carCMD = RIGHTAHEAD;
           break;
         };
@@ -690,6 +765,14 @@ void loop() {
 
   v = -1;
 
+
+
+  //////////////////////////////////////////////
+
+
+
+
+  /////////////////////////////////////////////////////////
   delay(loopDelay);
 
 }
